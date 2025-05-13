@@ -2,6 +2,7 @@
 
 # dependencies
 node_modules/
+jspm_packages/
 
 # Expo
 .expo/
@@ -25,13 +26,36 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+lerna-debug.log*
+.pnpm-debug.log*
 
 # macOS
 .DS_Store
 *.pem
 
 # local env files
+.env
 .env*.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # typescript
 *.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
+
+# Build
+build/
+.next/
+out/
+.nuxt/
+dist/
+
+# Cache
+.cache/
+.parcel-cache/
+.temp/
+.yarn/

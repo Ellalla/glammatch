@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # GlamMatch
 
 GlamMatch 是一个帮助用户寻找附近美妆艺术家的移动应用。
@@ -50,3 +51,7 @@ npm start
 ## 许可证
 
 MIT License 
+=======
+# glammatch
+A beauty service marketplace where freelance artists showcase their work, chat with clients, and receive bookings.
+>>>>>>> afcc30c79c2ad8197ba6180cc4331a501190d365
