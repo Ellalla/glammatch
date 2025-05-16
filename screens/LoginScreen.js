@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Alert,
+  Image,
+  ScrollView
+} from 'react-native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 
@@ -37,57 +46,94 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>欢迎回来</Text>
-      <Text style={styles.subtitle}>登录您的账号</Text>
+    <ScrollView style={styles.container}>
+      <View style={styles.contentContainer}>
+        {/* Logo */}
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('../assets/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
 
-      <TextInput
-        placeholder="邮箱"
-        value={email}
-        onChangeText={setEmail}
-        style={styles.input}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        editable={!loading}
-      />
+        <Text style={styles.title}>欢迎回来</Text>
+        <Text style={styles.subtitle}>登录您的账号</Text>
 
-      <TextInput
-        placeholder="密码"
-        value={password}
-        onChangeText={setPassword}
-        style={styles.input}
-        secureTextEntry
-        editable={!loading}
-      />
+        {/* 登录表单 */}
+        <View style={styles.formContainer}>
+          <TextInput
+            placeholder="邮箱"
+            value={email}
+            onChangeText={setEmail}
+            style={styles.input}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            editable={!loading}
+          />
 
-      <TouchableOpacity 
-        style={styles.button} 
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? '登录中...' : '登录'}
-        </Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={styles.registerButton} 
-        onPress={() => navigation.navigate('Register')}
-        disabled={loading}
-      >
-        <Text style={styles.registerButtonText}>
-          没有账号？立即注册
-        </Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={styles.backButton} 
-        onPress={() => navigation.goBack()}
-        disabled={loading}
-      >
-        <Text style={styles.backButtonText}>返回首页</Text>
-      </TouchableOpacity>
-    </View>
+          <TextInput
+            placeholder="密码"
+            value={password}
+            onChangeText={setPassword}
+            style={styles.input}
+            secureTextEntry
+            editable={!loading}
+          />
+
+          <TouchableOpacity 
+            style={styles.button} 
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? '登录中...' : '登录'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 分隔线 */}
+        <View style={styles.dividerContainer}>
+          <View style={styles.divider} />
+          <Text style={styles.dividerText}>或</Text>
+          <View style={styles.divider} />
+        </View>
+
+        {/* 其他登录选项 */}
+        <View style={styles.otherOptionsContainer}>
+          <TouchableOpacity 
+            style={styles.emailLinkButton}
+            onPress={() => navigation.navigate('EmailLinkLogin')}
+            disabled={loading}
+          >
+            <Text style={styles.emailLinkButtonText}>
+              使用邮箱链接登录
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 底部选项 */}
+        <View style={styles.bottomContainer}>
+          <TouchableOpacity 
+            style={styles.registerButton} 
+            onPress={() => navigation.navigate('Register')}
+            disabled={loading}
+          >
+            <Text style={styles.registerButtonText}>
+              没有账号？立即注册
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => navigation.goBack()}
+            disabled={loading}
+          >
+            <Text style={styles.backButtonText}>返回首页</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -95,8 +141,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff9f7',
+  },
+  contentContainer: {
+    flex: 1,
     padding: 24,
-    justifyContent: 'center',
+    paddingTop: 60,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  logo: {
+    width: 120,
+    height: 120,
   },
   title: {
     fontSize: 32,
@@ -110,6 +167,9 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 32,
     textAlign: 'center',
+  },
+  formContainer: {
+    marginBottom: 24,
   },
   input: {
     backgroundColor: '#fff',
@@ -125,24 +185,55 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
-    marginBottom: 16,
   },
   buttonText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
   },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#ddd',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    color: '#666',
+    fontSize: 14,
+  },
+  otherOptionsContainer: {
+    marginBottom: 24,
+  },
+  emailLinkButton: {
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#6B4C3B',
+    alignItems: 'center',
+  },
+  emailLinkButtonText: {
+    color: '#6B4C3B',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  bottomContainer: {
+    alignItems: 'center',
+  },
   registerButton: {
     marginBottom: 16,
-    alignItems: 'center',
   },
   registerButtonText: {
     color: '#6B4C3B',
     fontSize: 16,
+    fontWeight: '500',
   },
   backButton: {
     padding: 8,
-    alignItems: 'center',
   },
   backButtonText: {
     color: '#999',
