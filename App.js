@@ -12,6 +12,7 @@ import WelcomeScreen from './screens/WelcomeScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import EmailLinkLoginScreen from './screens/EmailLinkLoginScreen';
+import EditProfileScreen from './screens/EditProfileScreen';
 
 import { auth } from './firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -25,8 +26,8 @@ function AuthStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="EmailLinkLogin" component={EmailLinkLoginScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} />
     </Stack.Navigator>
   );
 }
@@ -34,50 +35,73 @@ function AuthStack() {
 // 主应用导航栏
 function MainTabs() {
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarIcon: ({ color, size }) => {
-          let iconName;
-          if (route.name === 'Home') iconName = 'home-outline';
-          else if (route.name === 'Upload') iconName = 'add-circle-outline';
-          else if (route.name === 'Map') iconName = 'map-outline';
-          else if (route.name === 'Profile') iconName = 'person-outline';
-          return <Icon name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: '#FF5A5F',
-        tabBarInactiveTintColor: 'gray',
-        tabBarStyle: {
-          height: 60,
-          paddingBottom: 10,
-          paddingTop: 5
-        },
-        tabBarLabelStyle: {
-          fontSize: 12
-        }
-      })}
-    >
-      <Tab.Screen 
-        name="Home" 
-        component={HomeScreen} 
-        options={{ tabBarLabel: '首页' }}
+    <Stack.Navigator>
+      <Stack.Screen 
+        name="MainTabs" 
+        options={{ headerShown: false }}
+      >
+        {() => (
+          <Tab.Navigator
+            screenOptions={({ route }) => ({
+              headerShown: false,
+              tabBarIcon: ({ color, size }) => {
+                let iconName;
+                if (route.name === 'Home') iconName = 'home-outline';
+                else if (route.name === 'Upload') iconName = 'add-circle-outline';
+                else if (route.name === 'Map') iconName = 'map-outline';
+                else if (route.name === 'Profile') iconName = 'person-outline';
+                return <Icon name={iconName} size={size} color={color} />;
+              },
+              tabBarActiveTintColor: '#FF5A5F',
+              tabBarInactiveTintColor: 'gray',
+              tabBarStyle: {
+                height: 60,
+                paddingBottom: 10,
+                paddingTop: 5
+              },
+              tabBarLabelStyle: {
+                fontSize: 12
+              }
+            })}
+          >
+            <Tab.Screen 
+              name="Home" 
+              component={HomeScreen} 
+              options={{ tabBarLabel: '首页' }}
+            />
+            <Tab.Screen 
+              name="Upload" 
+              component={UploadScreen} 
+              options={{ tabBarLabel: '发布' }}
+            />
+            <Tab.Screen 
+              name="Map" 
+              component={MapScreen} 
+              options={{ tabBarLabel: '附近' }}
+            />
+            <Tab.Screen 
+              name="Profile" 
+              component={ProfileScreen} 
+              options={{ tabBarLabel: '我的' }}
+            />
+          </Tab.Navigator>
+        )}
+      </Stack.Screen>
+      <Stack.Screen 
+        name="EditProfile" 
+        component={EditProfileScreen}
+        options={{
+          title: '编辑资料',
+          headerStyle: {
+            backgroundColor: '#fff9f7',
+          },
+          headerTintColor: '#6B4C3B',
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
+        }}
       />
-      <Tab.Screen 
-        name="Upload" 
-        component={UploadScreen} 
-        options={{ tabBarLabel: '发布' }}
-      />
-      <Tab.Screen 
-        name="Map" 
-        component={MapScreen} 
-        options={{ tabBarLabel: '附近' }}
-      />
-      <Tab.Screen 
-        name="Profile" 
-        component={ProfileScreen} 
-        options={{ tabBarLabel: '我的' }}
-      />
-    </Tab.Navigator>
+    </Stack.Navigator>
   );
 }
 
