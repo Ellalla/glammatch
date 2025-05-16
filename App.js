@@ -57,10 +57,15 @@ function MainTabs() {
               tabBarStyle: {
                 height: 60,
                 paddingBottom: 10,
-                paddingTop: 5
+                paddingTop: 5,
+                boxShadow: '0px -2px 10px rgba(0, 0, 0, 0.1)',
+                backgroundColor: '#ffffff'
               },
               tabBarLabelStyle: {
                 fontSize: 12
+              },
+              style: {
+                pointerEvents: 'auto'
               }
             })}
           >
@@ -99,6 +104,7 @@ function MainTabs() {
           headerTitleStyle: {
             fontWeight: '600',
           },
+          headerBackTitle: '返回',
         }}
       />
     </Stack.Navigator>

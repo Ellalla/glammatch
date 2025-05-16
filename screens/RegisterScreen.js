@@ -8,7 +8,8 @@ import {
   StyleSheet, 
   Alert,
   Image,
-  ScrollView
+  ScrollView,
+  ActivityIndicator
 } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
@@ -24,17 +25,29 @@ export default function RegisterScreen({ navigation }) {
       Alert.alert('错误', '请输入邮箱和密码');
       return;
     }
+
+    if (!email.includes('@')) {
+      Alert.alert('错误', '请输入有效的邮箱地址');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('错误', '密码长度不能少于6位');
+      return;
+    }
     
     setLoading(true);
     try {
+      console.log('开始注册...');
       // 创建用户账号
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+      console.log('用户创建成功:', user.email);
 
       // 保存基础用户信息到 Firestore
-      await setDoc(doc(db, 'users', user.uid), {
+      const userData = {
         email: user.email,
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
         displayName: '',
         avatar: '',
         bio: '',
@@ -46,8 +59,12 @@ export default function RegisterScreen({ navigation }) {
         rating: 0,
         reviews: [],
         isVerified: false,
-        lastActive: new Date(),
-      });
+        lastActive: new Date().toISOString(),
+      };
+
+      console.log('正在保存用户资料...');
+      await setDoc(doc(db, 'users', user.uid), userData);
+      console.log('用户资料保存成功');
 
       Alert.alert(
         '注册成功', 
@@ -65,12 +82,21 @@ export default function RegisterScreen({ navigation }) {
       console.error('注册错误:', error);
       let errorMessage = '注册失败，请重试';
       
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = '该邮箱已被使用';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = '无效的邮箱格式';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = '密码强度不足，请使用至少6位密码';
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          errorMessage = '该邮箱已被使用';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = '无效的邮箱格式';
+          break;
+        case 'auth/weak-password':
+          errorMessage = '密码强度不足，请使用至少6位密码';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = '网络连接失败，请检查网络设置';
+          break;
+        default:
+          errorMessage = `注册失败: ${error.message}`;
       }
       
       Alert.alert('注册失败', errorMessage);
@@ -120,9 +146,11 @@ export default function RegisterScreen({ navigation }) {
             onPress={handleRegister}
             disabled={loading}
           >
-            <Text style={styles.buttonText}>
-              {loading ? '注册中...' : '注册'}
-            </Text>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>注册</Text>
+            )}
           </TouchableOpacity>
         </View>
 

@@ -12,13 +12,14 @@ import {
   SafeAreaView
 } from 'react-native';
 import { auth, db } from '../firebaseConfig';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function EditProfileScreen({ route, navigation }) {
-  const { profile, focusAvatar } = route.params;
+  const { profile, onProfileUpdated } = route.params;
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
@@ -26,6 +27,9 @@ export default function EditProfileScreen({ route, navigation }) {
     bio: profile.bio || '',
     location: profile.location || '',
     services: profile.services || [],
+    createdAt: profile.createdAt || new Date().toISOString(),
+    updatedAt: profile.updatedAt || new Date().toISOString(),
+    lastActive: new Date().toISOString()
   });
 
   // 请求相册权限
@@ -37,6 +41,23 @@ export default function EditProfileScreen({ route, navigation }) {
       }
     })();
   }, []);
+
+  // 验证表单数据
+  const validateForm = () => {
+    if (!formData.displayName.trim()) {
+      Alert.alert('错误', '昵称不能为空');
+      return false;
+    }
+    if (formData.displayName.length > 20) {
+      Alert.alert('错误', '昵称不能超过20个字符');
+      return false;
+    }
+    if (formData.bio.length > 200) {
+      Alert.alert('错误', '简介不能超过200个字符');
+      return false;
+    }
+    return true;
+  };
 
   const handleImagePick = async () => {
     try {
@@ -52,56 +73,116 @@ export default function EditProfileScreen({ route, navigation }) {
         const storage = getStorage();
         const imageRef = ref(storage, `avatars/${auth.currentUser.uid}`);
         
-        // 将图片转换为 Blob
-        const response = await fetch(result.assets[0].uri);
-        const blob = await response.blob();
-        
-        // 上传图片
-        await uploadBytes(imageRef, blob);
-        
-        // 获取下载链接
-        const downloadURL = await getDownloadURL(imageRef);
-        
-        // 更新用户资料
-        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-          avatar: downloadURL
-        });
-        
-        Alert.alert('成功', '头像更新成功');
+        try {
+          // 将图片转换为 Blob
+          const response = await fetch(result.assets[0].uri);
+          const blob = await response.blob();
+          
+          // 设置 CORS 配置
+          const metadata = {
+            contentType: 'image/jpeg',
+            customMetadata: {
+              'Access-Control-Allow-Origin': '*'
+            }
+          };
+          
+          // 上传图片
+          await uploadBytes(imageRef, blob, metadata);
+          
+          // 获取下载链接
+          const downloadURL = await getDownloadURL(imageRef);
+          
+          // 更新用户资料
+          const userRef = doc(db, 'users', auth.currentUser.uid);
+          await updateDoc(userRef, {
+            avatar: downloadURL,
+            updatedAt: new Date().toISOString()
+          });
+          
+          Alert.alert('成功', '头像更新成功');
+        } catch (uploadError) {
+          console.error('上传头像错误:', uploadError);
+          Alert.alert('错误', '上传头像失败，请重试');
+        }
       }
     } catch (error) {
-      console.error('上传头像错误:', error);
-      Alert.alert('错误', '上传头像失败，请重试');
+      console.error('选择图片错误:', error);
+      Alert.alert('错误', '选择图片失败，请重试');
     } finally {
       setUploading(false);
     }
   };
 
   const handleSave = async () => {
-    if (!formData.displayName.trim()) {
-      Alert.alert('错误', '昵称不能为空');
+    if (!validateForm()) {
       return;
     }
 
     setLoading(true);
     try {
-      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-        displayName: formData.displayName.trim(),
-        bio: formData.bio.trim(),
-        location: formData.location.trim(),
-        services: formData.services,
-        updatedAt: new Date(),
-      });
+      console.log('开始保存资料...');
+      console.log('当前表单数据:', formData);
 
-      Alert.alert('成功', '资料更新成功', [
-        {
-          text: '确定',
-          onPress: () => navigation.goBack()
+      // 准备更新的数据
+      const updateData = {
+        ...formData,
+        services: formData.services.filter(service => service.trim() !== ''),
+        updatedAt: new Date().toISOString(),
+        createdAt: formData.createdAt ? new Date(formData.createdAt).toISOString() : new Date().toISOString(),
+        lastActive: new Date().toISOString()
+      };
+
+      console.log('准备更新的数据:', updateData);
+
+      // 尝试更新 Firestore
+      try {
+        const userRef = doc(db, 'users', auth.currentUser.uid);
+        await updateDoc(userRef, updateData);
+        console.log('Firestore 更新成功');
+
+        // 获取更新后的用户资料
+        const updatedDoc = await getDoc(userRef);
+        const updatedProfile = {
+          id: updatedDoc.id,
+          ...updatedDoc.data()
+        };
+
+        // 保存到本地存储
+        try {
+          await AsyncStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+          console.log('本地存储更新成功');
+        } catch (storageError) {
+          console.error('本地存储更新失败:', storageError);
         }
-      ]);
+
+        // 使用 goBack 而不是 navigate
+        navigation.goBack();
+      } catch (firestoreError) {
+        console.error('Firestore 更新失败:', firestoreError);
+        
+        // 如果 Firestore 更新失败，尝试保存到本地存储
+        try {
+          const localProfile = {
+            ...formData,
+            id: auth.currentUser.uid,
+            updatedAt: new Date().toISOString(),
+            createdAt: formData.createdAt ? new Date(formData.createdAt).toISOString() : new Date().toISOString(),
+            lastActive: new Date().toISOString()
+          };
+          
+          await AsyncStorage.setItem('userProfile', JSON.stringify(localProfile));
+          console.log('已保存到本地存储');
+          
+          // 使用 goBack 而不是 navigate
+          navigation.goBack();
+        } catch (storageError) {
+          console.error('本地存储也失败:', storageError);
+          Alert.alert('保存失败', '无法保存更改，请稍后重试');
+        }
+      }
     } catch (error) {
-      console.error('更新资料错误:', error);
-      Alert.alert('错误', '更新资料失败，请重试');
+      console.error('保存过程发生错误:', error);
+      Alert.alert('保存失败', '保存过程中发生错误，请重试');
     } finally {
       setLoading(false);
     }

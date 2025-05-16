@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -14,63 +14,114 @@ import { auth, db } from '../firebaseConfig';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function ProfileScreen({ navigation }) {
+export default function ProfileScreen({ navigation, route }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // 获取当前用户 UID
   const uid = auth.currentUser?.uid;
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!uid) {
-        console.log('No user ID found');
-        setLoading(false);
-        return;
+  // 从本地存储加载资料
+  const loadLocalProfile = async () => {
+    try {
+      const localProfile = await AsyncStorage.getItem('userProfile');
+      if (localProfile) {
+        console.log('从本地存储加载资料成功');
+        return JSON.parse(localProfile);
       }
+    } catch (error) {
+      console.error('从本地存储加载资料失败:', error);
+    }
+    return null;
+  };
 
-      try {
-        console.log('Fetching profile for user:', uid);
-        const docRef = doc(db, 'users', uid);
-        const docSnap = await getDoc(docRef);
+  // 获取用户资料
+  const fetchProfile = useCallback(async () => {
+    if (!uid) {
+      console.log('No user ID found');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      console.log('Fetching profile for user:', uid);
+      const docRef = doc(db, 'users', uid);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        console.log('Profile data:', docSnap.data());
+        const profileData = docSnap.data();
+        setProfile(profileData);
+        // 保存到本地存储
+        await AsyncStorage.setItem('userProfile', JSON.stringify(profileData));
+      } else {
+        console.log('No profile found, creating basic profile');
+        // 如果没有找到用户资料，创建一个基本资料
+        const basicProfile = {
+          email: auth.currentUser.email,
+          displayName: '',
+          bio: '',
+          location: '',
+          services: [],
+          followers: 0,
+          following: 0,
+          posts: 0,
+          rating: 0,
+          reviews: [],
+          isVerified: false,
+          createdAt: new Date().toISOString(),
+          lastActive: new Date().toISOString(),
+        };
         
-        if (docSnap.exists()) {
-          console.log('Profile data:', docSnap.data());
-          setProfile(docSnap.data());
-        } else {
-          console.log('No profile found, creating basic profile');
-          // 如果没有找到用户资料，创建一个基本资料
-          const basicProfile = {
-            email: auth.currentUser.email,
-            displayName: '',
-            bio: '',
-            location: '',
-            services: [],
-            followers: 0,
-            following: 0,
-            posts: 0,
-            rating: 0,
-            reviews: [],
-            isVerified: false,
-            createdAt: new Date(),
-            lastActive: new Date(),
-          };
-          
+        try {
           // 保存基础资料到 Firestore
           await setDoc(docRef, basicProfile);
           setProfile(basicProfile);
+          // 保存到本地存储
+          await AsyncStorage.setItem('userProfile', JSON.stringify(basicProfile));
+        } catch (error) {
+          console.error('保存基础资料到 Firestore 失败:', error);
+          // 如果 Firestore 保存失败，使用本地存储
+          setProfile(basicProfile);
+          await AsyncStorage.setItem('userProfile', JSON.stringify(basicProfile));
         }
-      } catch (err) {
-        console.error('Failed to fetch profile:', err);
-        Alert.alert('错误', '加载用户资料失败，请重试');
-      } finally {
-        setLoading(false);
       }
-    };
-
-    fetchProfile();
+    } catch (err) {
+      console.error('Failed to fetch profile:', err);
+      // 尝试从本地存储加载
+      const localProfile = await loadLocalProfile();
+      if (localProfile) {
+        setProfile(localProfile);
+      } else {
+        Alert.alert('错误', '加载用户资料失败，请重试');
+      }
+    } finally {
+      setLoading(false);
+    }
   }, [uid]);
+
+  // 监听路由参数变化
+  useEffect(() => {
+    if (route.params?.profile) {
+      setProfile(route.params.profile);
+    }
+  }, [route.params]);
+
+  // 初始加载和页面获得焦点时获取资料
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+  // 监听页面焦点
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchProfile();
+    });
+
+    return unsubscribe;
+  }, [navigation, fetchProfile]);
 
   const handleLogout = async () => {
     try {
@@ -82,17 +133,14 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
+  // 处理资料更新
+  const handleProfileUpdated = (updatedProfile) => {
+    setProfile(updatedProfile);
+  };
+
   const handleEditProfile = () => {
-    if (!profile) {
-      Alert.alert('错误', '无法加载用户资料');
-      return;
-    }
-    console.log('Navigating to EditProfile with profile:', profile);
-    navigation.navigate('EditProfile', { 
-      profile: {
-        ...profile,
-        email: auth.currentUser?.email,
-      }
+    navigation.navigate('EditProfile', {
+      profile: profile,
     });
   };
 
@@ -122,8 +170,8 @@ export default function ProfileScreen({ navigation }) {
             rating: 0,
             reviews: [],
             isVerified: false,
-            createdAt: new Date(),
-            lastActive: new Date(),
+            createdAt: new Date().toISOString(),
+            lastActive: new Date().toISOString(),
           }})}
         >
           <Ionicons name="create-outline" size={24} color="#6B4C3B" />
@@ -149,7 +197,7 @@ export default function ProfileScreen({ navigation }) {
 
         {/* 头像 */}
         <TouchableOpacity 
-          onPress={() => navigation.navigate('EditProfile', { profile, focusAvatar: true })}
+          onPress={handleEditProfile}
         >
           {profile.avatar ? (
             <Image source={{ uri: profile.avatar }} style={styles.avatar} />
@@ -232,14 +280,7 @@ const styles = StyleSheet.create({
     padding: 8,
     backgroundColor: '#fff',
     borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
   },
   editButtonText: {
     color: '#6B4C3B',
@@ -293,14 +334,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 16,
     borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
   },
   sectionTitle: {
     fontSize: 18,
@@ -319,14 +353,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     backgroundColor: '#ff4d4f',
     borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
   },
   logoutButtonText: {
     color: '#fff',
