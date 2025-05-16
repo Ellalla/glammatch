@@ -1,5 +1,5 @@
 // screens/HomeScreen.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -8,14 +8,69 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   TextInput,
-  RefreshControl
+  RefreshControl,
+  Alert,
+  Modal,
+  Animated
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { auth } from '../firebaseConfig';
+import { signOut } from 'firebase/auth';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [user, setUser] = useState(null);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [menuAnimation] = useState(new Animated.Value(0));
+
+  // 检查用户登录状态
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+    });
+    return unsubscribe;
+  }, []);
+
+  // 处理登出
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setShowMoreMenu(false);
+    } catch (error) {
+      console.error('登出错误:', error);
+      Alert.alert('错误', '登出失败，请重试');
+    }
+  };
+
+  // 显示更多菜单
+  const toggleMoreMenu = () => {
+    const toValue = showMoreMenu ? 0 : 1;
+    Animated.spring(menuAnimation, {
+      toValue,
+      useNativeDriver: true,
+      tension: 65,
+      friction: 11
+    }).start();
+    setShowMoreMenu(!showMoreMenu);
+  };
+
+  // 处理菜单项点击
+  const handleMenuItemPress = (action) => {
+    setShowMoreMenu(false);
+    switch (action) {
+      case 'logout':
+        handleLogout();
+        break;
+      case 'privacy':
+        Alert.alert('隐私条例', '隐私条例内容将在这里显示');
+        break;
+      case 'about':
+        Alert.alert('关于 GlamMatch', 'GlamMatch 是一个连接美妆师和客户的平台...');
+        break;
+    }
+  };
 
   // 模拟下拉刷新
   const onRefresh = () => {
@@ -131,14 +186,74 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <Text style={styles.appTitle}>GlamMatch</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerButton}>
-            <Text style={styles.headerIcon}>❤</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerButton}>
-            <Text style={styles.headerIcon}>✉</Text>
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={toggleMoreMenu}
+          >
+            <Text style={styles.headerIcon}>⋮</Text>
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* 更多菜单 */}
+      <Modal
+        visible={showMoreMenu}
+        transparent={true}
+        animationType="none"
+        onRequestClose={() => setShowMoreMenu(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowMoreMenu(false)}
+        >
+          <Animated.View 
+            style={[
+              styles.menuContainer,
+              {
+                transform: [{
+                  translateY: menuAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-20, 0]
+                  })
+                }],
+                opacity: menuAnimation
+              }
+            ]}
+          >
+            {user ? (
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => handleMenuItemPress('logout')}
+              >
+                <Text style={styles.menuItemText}>登出</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => {
+                  setShowMoreMenu(false);
+                  navigation.navigate('Login');
+                }}
+              >
+                <Text style={styles.menuItemText}>登录</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => handleMenuItemPress('privacy')}
+            >
+              <Text style={styles.menuItemText}>隐私条例</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => handleMenuItemPress('about')}
+            >
+              <Text style={styles.menuItemText}>关于 GlamMatch</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* 搜索栏 */}
       <View style={styles.searchContainer}>
@@ -300,5 +415,37 @@ const styles = StyleSheet.create({
     color: '#999',
     marginLeft: 12,
     marginTop: 2,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: 60,
+    paddingRight: 20,
+  },
+  menuContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 8,
+    width: 200,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  menuItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  menuItemText: {
+    fontSize: 16,
+    color: '#333',
   },
 });
