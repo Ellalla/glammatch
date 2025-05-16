@@ -13,14 +13,14 @@ GlamMatch 是一个帮助用户寻找附近美妆艺术家的移动应用。
 
 - React Native
 - Expo
-- NativeWind (Tailwind CSS for React Native)
+- React Native (Tailwind CSS for React Native)
 - React Native Web
 
 ## 开始使用
 
 1. 克隆仓库
 ```bash
-git clone https://github.com/yourusername/glammatch-app.git
+git clone https://github.com/ellalla/glammatch-app.git
 ```
 
 2. 安装依赖
@@ -43,10 +43,10 @@ npm start
 ## 贡献指南
 
 1. Fork 这个仓库
-2. 创建你的特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交你的更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启一个 Pull Request
+2.  (`git checkout -b feature/AmazingFeature`)
+3.  (`git commit -m 'Add some AmazingFeature'`)
+4.  (`git push origin feature/AmazingFeature`)
+5.   Pull Request
 
 ## 许可证
 
