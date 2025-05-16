@@ -2,6 +2,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import { Alert, Platform } from 'react-native';
 
 // Firebase 配置
@@ -17,13 +18,15 @@ const firebaseConfig = {
 // 初始化 Firebase
 let app;
 let auth;
-let firestore;
+let db;
+let storage;
 
 try {
   console.log('Initializing Firebase...');
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
-  firestore = getFirestore(app);
+  db = getFirestore(app);
+  storage = getStorage(app);
   
   console.log('Firebase initialized successfully!');
   
@@ -31,7 +34,7 @@ try {
   if (__DEV__ && false) { // 设置为 true 启用模拟器
     try {
       connectAuthEmulator(auth, 'http://localhost:9099');
-      connectFirestoreEmulator(firestore, 'localhost', 8080);
+      connectFirestoreEmulator(db, 'localhost', 8080);
       console.log('Firebase emulators connected');
     } catch (emulatorError) {
       console.error('Failed to connect to Firebase emulators:', emulatorError);
@@ -52,4 +55,4 @@ try {
 }
 
 // 导出 Firebase 实例
-export { app, auth, firestore };
+export { app, auth, db, storage };

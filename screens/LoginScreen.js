@@ -7,7 +7,8 @@ import {
   StyleSheet, 
   Alert,
   Image,
-  ScrollView
+  ScrollView,
+  ActivityIndicator
 } from 'react-native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
@@ -22,21 +23,45 @@ export default function LoginScreen({ navigation }) {
       Alert.alert('错误', '请输入邮箱和密码');
       return;
     }
+
+    if (!email.includes('@')) {
+      Alert.alert('错误', '请输入有效的邮箱地址');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('错误', '密码长度不能少于6位');
+      return;
+    }
     
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      console.log('尝试登录...');
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('登录成功:', userCredential.user.email);
       // 登录成功后，App.js 中的 onAuthStateChanged 会自动导航到主应用
     } catch (error) {
       console.error('登录错误:', error);
       let errorMessage = '登录失败，请检查邮箱和密码';
       
-      if (error.code === 'auth/invalid-credential') {
-        errorMessage = '邮箱或密码不正确';
-      } else if (error.code === 'auth/user-not-found') {
-        errorMessage = '该邮箱未注册';
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = '尝试次数过多，请稍后再试';
+      switch (error.code) {
+        case 'auth/invalid-credential':
+          errorMessage = '邮箱或密码不正确';
+          break;
+        case 'auth/user-not-found':
+          errorMessage = '该邮箱未注册';
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = '尝试次数过多，请稍后再试';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = '无效的邮箱格式';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = '网络连接失败，请检查网络设置';
+          break;
+        default:
+          errorMessage = `登录失败: ${error.message}`;
       }
       
       Alert.alert('登录失败', errorMessage);
@@ -82,13 +107,15 @@ export default function LoginScreen({ navigation }) {
           />
 
           <TouchableOpacity 
-            style={styles.button} 
+            style={[styles.button, loading && styles.buttonDisabled]} 
             onPress={handleLogin}
             disabled={loading}
           >
-            <Text style={styles.buttonText}>
-              {loading ? '登录中...' : '登录'}
-            </Text>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>登录</Text>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -185,6 +212,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
+  },
+  buttonDisabled: {
+    backgroundColor: '#ccc',
   },
   buttonText: {
     color: '#fff',

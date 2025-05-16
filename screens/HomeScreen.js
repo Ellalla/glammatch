@@ -285,18 +285,16 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, 
-    backgroundColor: '#fff',
+    flex: 1,
+    backgroundColor: '#fff9f7',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    height: 56,
-    marginTop: 40,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    padding: 16,
+    backgroundColor: '#ffffff',
+    boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.1)',
   },
   appTitle: {
     fontSize: 22,
