@@ -15,6 +15,48 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DefaultAvatar from '../components/DefaultAvatar';
+import PortfolioGrid from '../components/PortfolioGrid';
+
+// 添加示例作品数据
+const samplePortfolioItems = [
+  {
+    id: '1',
+    title: '新娘妆容',
+    description: '为新娘设计的精致妆容，突出新娘的自然美。',
+    image: require('../assets/portfolio/makeup1.jpg'),
+  },
+  {
+    id: '2',
+    title: '日常妆容',
+    description: '清新自然的日常妆容，适合各种场合。',
+    image: require('../assets/portfolio/makeup2.jpg'),
+  },
+  {
+    id: '3',
+    title: '派对妆容',
+    description: '闪耀夺目的派对妆容，让你成为焦点。',
+    image: require('../assets/portfolio/makeup3.jpg'),
+  },
+  {
+    id: '4',
+    title: '创意妆容',
+    description: '充满创意的艺术妆容，展现独特魅力。',
+    image: require('../assets/portfolio/makeup4.jpg'),
+  },
+  {
+    id: '5',
+    title: '晚宴妆容',
+    description: '优雅大方的晚宴妆容，展现成熟魅力。',
+    image: require('../assets/portfolio/makeup5.jpg'),
+  },
+  {
+    id: '6',
+    title: '舞台妆容',
+    description: '夸张夺目的舞台妆容，适合表演场合。',
+    image: require('../assets/portfolio/makeup6.jpg'),
+  },
+];
 
 export default function ProfileScreen({ navigation, route }) {
   const [profile, setProfile] = useState(null);
@@ -144,6 +186,10 @@ export default function ProfileScreen({ navigation, route }) {
     });
   };
 
+  const handleAddBooking = () => {
+    navigation.navigate('Bookings');
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.center}>
@@ -187,6 +233,13 @@ export default function ProfileScreen({ navigation, route }) {
         {/* 顶部操作栏 */}
         <View style={styles.header}>
           <TouchableOpacity 
+            style={styles.addButton}
+            onPress={handleAddBooking}
+          >
+            <Ionicons name="add-circle-outline" size={24} color="#6B4C3B" />
+            <Text style={styles.addButtonText}>预约</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
             style={styles.editButton}
             onPress={handleEditProfile}
           >
@@ -200,13 +253,15 @@ export default function ProfileScreen({ navigation, route }) {
           onPress={handleEditProfile}
         >
           {profile.avatar ? (
-            <Image source={{ uri: profile.avatar }} style={styles.avatar} />
+            <Image 
+              source={{ uri: profile.avatar }} 
+              style={styles.avatar}
+              onError={(e) => {
+                console.log('头像加载失败，使用默认头像');
+              }}
+            />
           ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Text style={styles.avatarPlaceholderText}>
-                {profile.displayName?.charAt(0).toUpperCase() || 'U'}
-              </Text>
-            </View>
+            <DefaultAvatar size={120} name={profile.displayName || 'U'} />
           )}
         </TouchableOpacity>
 
@@ -240,6 +295,11 @@ export default function ProfileScreen({ navigation, route }) {
           </Text>
         </View>
 
+        {/* 作品集部分 */}
+        <View style={styles.section}>
+          <PortfolioGrid items={samplePortfolioItems} />
+        </View>
+
         {/* 登出按钮 */}
         <TouchableOpacity 
           style={styles.logoutButton}
@@ -270,9 +330,23 @@ const styles = StyleSheet.create({
   header: {
     width: '100%',
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     marginBottom: 24,
     paddingTop: 8,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+  },
+  addButtonText: {
+    color: '#6B4C3B',
+    fontSize: 16,
+    marginLeft: 4,
+    fontWeight: '500',
   },
   editButton: {
     flexDirection: 'row',

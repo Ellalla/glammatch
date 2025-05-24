@@ -61,6 +61,14 @@ export default function EditProfileScreen({ route, navigation }) {
 
   const handleImagePick = async () => {
     try {
+      // 请求权限
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('提示', '需要相册权限才能上传头像');
+        return;
+      }
+
+      // 选择图片
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -70,39 +78,85 @@ export default function EditProfileScreen({ route, navigation }) {
 
       if (!result.canceled) {
         setUploading(true);
-        const storage = getStorage();
-        const imageRef = ref(storage, `avatars/${auth.currentUser.uid}`);
+        console.log('开始上传图片...');
         
         try {
+          // 获取 Storage 实例
+          const storage = getStorage();
+          console.log('Storage 实例创建成功');
+          
+          // 创建存储引用
+          const imageRef = ref(storage, `avatars/${auth.currentUser.uid}`);
+          console.log('存储引用创建成功:', imageRef.fullPath);
+          
           // 将图片转换为 Blob
+          console.log('开始获取图片数据...');
           const response = await fetch(result.assets[0].uri);
           const blob = await response.blob();
+          console.log('图片数据获取成功，大小:', blob.size);
           
-          // 设置 CORS 配置
-          const metadata = {
-            contentType: 'image/jpeg',
-            customMetadata: {
-              'Access-Control-Allow-Origin': '*'
+          // 上传图片（添加重试逻辑）
+          console.log('开始上传到 Firebase Storage...');
+          let retryCount = 0;
+          const maxRetries = 3;
+          
+          while (retryCount < maxRetries) {
+            try {
+              const uploadResult = await uploadBytes(imageRef, blob, {
+                contentType: 'image/jpeg',
+                customMetadata: {
+                  uploadedBy: auth.currentUser.uid,
+                  uploadedAt: new Date().toISOString()
+                }
+              });
+              console.log('上传成功:', uploadResult);
+              break;
+            } catch (uploadError) {
+              retryCount++;
+              console.error(`上传失败 (尝试 ${retryCount}/${maxRetries}):`, uploadError);
+              
+              if (retryCount === maxRetries) {
+                throw uploadError;
+              }
+              
+              // 等待一段时间后重试
+              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
             }
-          };
-          
-          // 上传图片
-          await uploadBytes(imageRef, blob, metadata);
+          }
           
           // 获取下载链接
+          console.log('获取下载链接...');
           const downloadURL = await getDownloadURL(imageRef);
+          console.log('下载链接获取成功:', downloadURL);
           
           // 更新用户资料
+          console.log('更新用户资料...');
           const userRef = doc(db, 'users', auth.currentUser.uid);
           await updateDoc(userRef, {
             avatar: downloadURL,
             updatedAt: new Date().toISOString()
           });
+          console.log('用户资料更新成功');
           
           Alert.alert('成功', '头像更新成功');
         } catch (uploadError) {
-          console.error('上传头像错误:', uploadError);
-          Alert.alert('错误', '上传头像失败，请重试');
+          console.error('上传过程发生错误:', uploadError);
+          console.error('错误详情:', {
+            code: uploadError.code,
+            message: uploadError.message,
+            stack: uploadError.stack
+          });
+          
+          let errorMessage = '上传头像失败';
+          if (uploadError.code === 'storage/unauthorized') {
+            errorMessage = '没有权限上传文件，请确保已登录';
+          } else if (uploadError.code === 'storage/canceled') {
+            errorMessage = '上传已取消';
+          } else if (uploadError.code === 'storage/retry-limit-exceeded') {
+            errorMessage = '上传失败，请检查网络连接后重试';
+          }
+          
+          Alert.alert('错误', errorMessage);
         }
       }
     } catch (error) {

@@ -13,6 +13,7 @@ import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import EmailLinkLoginScreen from './screens/EmailLinkLoginScreen';
 import EditProfileScreen from './screens/EditProfileScreen';
+import BookingsScreen from './screens/BookingsScreen';
 
 import { auth } from './firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -105,6 +106,13 @@ function MainTabs() {
             fontWeight: '600',
           },
           headerBackTitle: '返回',
+        }}
+      />
+      <Stack.Screen 
+        name="Bookings" 
+        component={BookingsScreen}
+        options={{
+          headerShown: false,
         }}
       />
     </Stack.Navigator>
