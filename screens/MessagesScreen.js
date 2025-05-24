@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { auth, db } from '../firebaseConfig';
 import { MessageService } from '../services/MessageService';
@@ -54,18 +55,55 @@ export default function MessagesScreen({ navigation }) {
     }, 1000);
   }, []);
 
+  // 处理会话点击
+  const handleConversationPress = (item) => {
+    // 清除未读消息
+    setConversations(prevConversations =>
+      prevConversations.map(conv =>
+        conv.id === item.id ? { ...conv, unreadCount: 0 } : conv
+      )
+    );
+
+    navigation.navigate('Chat', {
+      conversationId: item.id,
+      otherUser: {
+        id: item.id,
+        displayName: item.displayName,
+        avatar: item.avatar,
+      },
+    });
+  };
+
+  // 处理长按删除
+  const handleLongPress = (item) => {
+    Alert.alert(
+      '删除会话',
+      `确定要删除与${item.displayName}的会话吗？`,
+      [
+        {
+          text: '取消',
+          style: 'cancel',
+        },
+        {
+          text: '删除',
+          style: 'destructive',
+          onPress: () => {
+            setConversations(prevConversations =>
+              prevConversations.filter(conv => conv.id !== item.id)
+            );
+          },
+        },
+      ]
+    );
+  };
+
   const renderConversation = ({ item }) => {
     return (
       <TouchableOpacity
         style={styles.conversationItem}
-        onPress={() => navigation.navigate('Chat', {
-          conversationId: item.id,
-          otherUser: {
-            id: item.id,
-            displayName: item.displayName,
-            avatar: item.avatar,
-          },
-        })}
+        onPress={() => handleConversationPress(item)}
+        onLongPress={() => handleLongPress(item)}
+        delayLongPress={500}
       >
         <View style={styles.avatarContainer}>
           {item.avatar ? (

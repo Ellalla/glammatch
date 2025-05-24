@@ -11,6 +11,7 @@ import {
   SafeAreaView,
   Image,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { auth } from '../firebaseConfig';
 import { MESSAGE_TYPES } from '../models/Message';
@@ -75,6 +76,7 @@ export default function ChatScreen({ route, navigation }) {
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [recording, setRecording] = useState(false);
   const flatListRef = useRef(null);
   const userId = 'currentUser'; // 模拟当前用户ID
 
@@ -122,14 +124,65 @@ export default function ChatScreen({ route, navigation }) {
     }
   };
 
+  const startRecording = () => {
+    setRecording(true);
+    // 这里应该开始录音
+    // 模拟录音
+    setTimeout(() => {
+      stopRecording();
+    }, 3000);
+  };
+
+  const stopRecording = () => {
+    setRecording(false);
+    // 这里应该停止录音并发送
+    // 模拟发送语音消息
+    const newMessage = {
+      id: Date.now().toString(),
+      senderId: userId,
+      content: '语音消息',
+      timestamp: new Date(),
+      type: MESSAGE_TYPES.VOICE,
+      duration: 3, // 语音时长（秒）
+    };
+    
+    setMessages(prevMessages => [...prevMessages, newMessage]);
+  };
+
+  const deleteMessage = (messageId) => {
+    Alert.alert(
+      '删除消息',
+      '确定要删除这条消息吗？',
+      [
+        {
+          text: '取消',
+          style: 'cancel',
+        },
+        {
+          text: '删除',
+          style: 'destructive',
+          onPress: () => {
+            setMessages(prevMessages =>
+              prevMessages.filter(msg => msg.id !== messageId)
+            );
+          },
+        },
+      ]
+    );
+  };
+
   const renderMessage = ({ item }) => {
     const isOwnMessage = item.senderId === userId;
 
     return (
-      <View style={[
-        styles.messageContainer,
-        isOwnMessage ? styles.ownMessage : styles.otherMessage
-      ]}>
+      <TouchableOpacity
+        style={[
+          styles.messageContainer,
+          isOwnMessage ? styles.ownMessage : styles.otherMessage
+        ]}
+        onLongPress={() => deleteMessage(item.id)}
+        delayLongPress={500}
+      >
         {!isOwnMessage && (
           <View style={styles.avatarContainer}>
             {otherUser.avatar ? (
@@ -143,12 +196,28 @@ export default function ChatScreen({ route, navigation }) {
           styles.messageBubble,
           isOwnMessage ? styles.ownBubble : styles.otherBubble
         ]}>
-          <Text style={[
-            styles.messageText,
-            isOwnMessage ? styles.ownMessageText : null
-          ]}>
-            {item.content}
-          </Text>
+          {item.type === MESSAGE_TYPES.VOICE ? (
+            <View style={styles.voiceMessage}>
+              <Ionicons
+                name={isOwnMessage ? "play" : "play-outline"}
+                size={24}
+                color={isOwnMessage ? "#fff" : "#6B4C3B"}
+              />
+              <Text style={[
+                styles.voiceDuration,
+                isOwnMessage ? styles.ownMessageText : null
+              ]}>
+                {item.duration}秒
+              </Text>
+            </View>
+          ) : (
+            <Text style={[
+              styles.messageText,
+              isOwnMessage ? styles.ownMessageText : null
+            ]}>
+              {item.content}
+            </Text>
+          )}
           <Text style={[
             styles.messageTime,
             isOwnMessage ? styles.ownMessageTime : null
@@ -156,7 +225,7 @@ export default function ChatScreen({ route, navigation }) {
             {item.timestamp.toLocaleTimeString()}
           </Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -183,6 +252,17 @@ export default function ChatScreen({ route, navigation }) {
           />
         )}
         <View style={styles.inputContainer}>
+          <TouchableOpacity
+            style={[styles.voiceButton, recording && styles.voiceButtonRecording]}
+            onPressIn={startRecording}
+            onPressOut={stopRecording}
+          >
+            <Ionicons
+              name={recording ? "mic" : "mic-outline"}
+              size={24}
+              color={recording ? "#FF5A5F" : "#6B4C3B"}
+            />
+          </TouchableOpacity>
           <TextInput
             style={styles.input}
             value={inputText}
@@ -300,5 +380,27 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     opacity: 0.5,
+  },
+  voiceButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  voiceButtonRecording: {
+    backgroundColor: '#FFE5E5',
+  },
+  voiceMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+  },
+  voiceDuration: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#333',
   },
 }); 

@@ -2,6 +2,7 @@
 export const MESSAGE_TYPES = {
   TEXT: 'text',
   IMAGE: 'image',
+  VOICE: 'voice',
   SYSTEM: 'system',
 };
 
