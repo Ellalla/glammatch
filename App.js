@@ -14,6 +14,8 @@ import RegisterScreen from './screens/RegisterScreen';
 import EmailLinkLoginScreen from './screens/EmailLinkLoginScreen';
 import EditProfileScreen from './screens/EditProfileScreen';
 import BookingsScreen from './screens/BookingsScreen';
+import MessagesScreen from './screens/MessagesScreen';
+import ChatScreen from './screens/ChatScreen';
 
 import { auth } from './firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -50,6 +52,7 @@ function MainTabs() {
                 if (route.name === 'Home') iconName = 'home-outline';
                 else if (route.name === 'Upload') iconName = 'add-circle-outline';
                 else if (route.name === 'Map') iconName = 'map-outline';
+                else if (route.name === 'Messages') iconName = 'chatbubbles-outline';
                 else if (route.name === 'Profile') iconName = 'person-outline';
                 return <Icon name={iconName} size={size} color={color} />;
               },
@@ -86,6 +89,11 @@ function MainTabs() {
               options={{ tabBarLabel: '附近' }}
             />
             <Tab.Screen 
+              name="Messages" 
+              component={MessagesScreen} 
+              options={{ tabBarLabel: '消息' }}
+            />
+            <Tab.Screen 
               name="Profile" 
               component={ProfileScreen} 
               options={{ tabBarLabel: '我的' }}
@@ -113,6 +121,19 @@ function MainTabs() {
         component={BookingsScreen}
         options={{
           headerShown: false,
+        }}
+      />
+      <Stack.Screen 
+        name="Chat" 
+        component={ChatScreen}
+        options={{
+          headerStyle: {
+            backgroundColor: '#fff9f7',
+          },
+          headerTintColor: '#6B4C3B',
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
         }}
       />
     </Stack.Navigator>
