@@ -18,6 +18,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DefaultAvatar from '../components/DefaultAvatar';
 import PortfolioGrid from '../components/PortfolioGrid';
+import { colors, typography } from '../src/theme';
+import { Button, Card } from '../src/components';
 
 // 添加示例作品数据
 const samplePortfolioItems = [
@@ -356,6 +358,18 @@ export default function ProfileScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
 
+        {/* 主题测试按钮 */}
+        <View style={styles.section}>
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('ThemeTest')}
+          >
+            <Ionicons name="color-palette-outline" size={24} color="#6B4C3B" />
+            <Text style={styles.menuText}>主题测试</Text>
+            <Ionicons name="chevron-forward" size={24} color="#999" />
+          </TouchableOpacity>
+        </View>
+
         {/* 身份设置 */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -425,7 +439,7 @@ export default function ProfileScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff9f7',
+    backgroundColor: colors.background.primary,
   },
   container: {
     padding: 24,
@@ -435,7 +449,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff9f7',
+    backgroundColor: colors.background.primary,
   },
   header: {
     width: '100%',
@@ -448,29 +462,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background.secondary,
     borderRadius: 8,
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+    shadowColor: colors.shadow.light,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   addButtonText: {
-    color: '#6B4C3B',
-    fontSize: 16,
+    color: colors.primary,
+    ...typography.styles.label,
     marginLeft: 4,
-    fontWeight: '500',
   },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background.secondary,
     borderRadius: 8,
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+    shadowColor: colors.shadow.light,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   editButtonText: {
-    color: '#6B4C3B',
-    fontSize: 16,
+    color: colors.primary,
+    ...typography.styles.label,
     marginLeft: 4,
-    fontWeight: '500',
   },
   errorText: {
     color: '#999',
@@ -503,22 +523,25 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#6B4C3B',
+    ...typography.styles.h3,
+    color: colors.primary,
   },
   email: {
-    fontSize: 16,
-    color: '#666',
+    ...typography.styles.body,
+    color: colors.text.secondary,
     marginBottom: 24,
   },
   section: {
     width: '100%',
     marginBottom: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background.secondary,
     padding: 16,
     borderRadius: 8,
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+    shadowColor: colors.shadow.light,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   sectionHeader: {
     marginBottom: 15,

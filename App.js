@@ -18,6 +18,7 @@ import MessagesScreen from './screens/MessagesScreen';
 import ChatScreen from './screens/ChatScreen';
 import StylistScheduleScreen from './screens/StylistScheduleScreen';
 import MyPackageScreen from './screens/MyPackageScreen';
+import ThemeTestScreen from './screens/ThemeTestScreen';
 
 import { auth } from './firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -159,6 +160,20 @@ function MainTabs() {
         name="Chat" 
         component={ChatScreen}
         options={{
+          headerStyle: {
+            backgroundColor: '#fff9f7',
+          },
+          headerTintColor: '#6B4C3B',
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
+        }}
+      />
+      <Stack.Screen 
+        name="ThemeTest" 
+        component={ThemeTestScreen}
+        options={{
+          title: '主题测试',
           headerStyle: {
             backgroundColor: '#fff9f7',
           },
