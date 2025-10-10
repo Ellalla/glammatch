@@ -8,10 +8,11 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  SafeAreaView
+  SafeAreaView,
+  Switch
 } from 'react-native';
 import { auth, db } from '../firebaseConfig';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -60,6 +61,7 @@ const samplePortfolioItems = [
 
 export default function ProfileScreen({ navigation, route }) {
   const [profile, setProfile] = useState(null);
+  const [isStylist, setIsStylist] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // 获取当前用户 UID
@@ -96,6 +98,7 @@ export default function ProfileScreen({ navigation, route }) {
         console.log('Profile data:', docSnap.data());
         const profileData = docSnap.data();
         setProfile(profileData);
+        setIsStylist(profileData.isStylist || false);
         // 保存到本地存储
         await AsyncStorage.setItem('userProfile', JSON.stringify(profileData));
       } else {
@@ -121,12 +124,14 @@ export default function ProfileScreen({ navigation, route }) {
           // 保存基础资料到 Firestore
           await setDoc(docRef, basicProfile);
           setProfile(basicProfile);
+          setIsStylist(false);
           // 保存到本地存储
           await AsyncStorage.setItem('userProfile', JSON.stringify(basicProfile));
         } catch (error) {
           console.error('保存基础资料到 Firestore 失败:', error);
           // 如果 Firestore 保存失败，使用本地存储
           setProfile(basicProfile);
+          setIsStylist(false);
           await AsyncStorage.setItem('userProfile', JSON.stringify(basicProfile));
         }
       }
@@ -136,6 +141,7 @@ export default function ProfileScreen({ navigation, route }) {
       const localProfile = await loadLocalProfile();
       if (localProfile) {
         setProfile(localProfile);
+        setIsStylist(localProfile.isStylist || false);
       } else {
         Alert.alert('错误', '加载用户资料失败，请重试');
       }
@@ -188,6 +194,32 @@ export default function ProfileScreen({ navigation, route }) {
 
   const handleAddBooking = () => {
     navigation.navigate('Bookings');
+  };
+
+  const handleToggleStylist = async () => {
+    try {
+      if (!uid) return;
+
+      const newStylistStatus = !isStylist;
+      
+      // 更新用户身份
+      await updateDoc(doc(db, 'users', uid), {
+        isStylist: newStylistStatus,
+        updatedAt: new Date(),
+      });
+
+      setIsStylist(newStylistStatus);
+      
+      Alert.alert(
+        '成功',
+        newStylistStatus 
+          ? '您已成功成为化妆师！现在可以管理您的服务套餐和日程了。' 
+          : '您已切换为普通用户身份。'
+      );
+    } catch (error) {
+      console.error('更新身份失败:', error);
+      Alert.alert('错误', '更新身份失败，请稍后重试');
+    }
   };
 
   if (loading) {
@@ -300,6 +332,84 @@ export default function ProfileScreen({ navigation, route }) {
           <PortfolioGrid items={samplePortfolioItems} />
         </View>
 
+        {/* 管理日程按钮 */}
+        <View style={styles.section}>
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('StylistSchedule')}
+          >
+            <Ionicons name="calendar-outline" size={24} color="#6B4C3B" />
+            <Text style={styles.menuText}>管理我的日程</Text>
+            <Ionicons name="chevron-forward" size={24} color="#999" />
+          </TouchableOpacity>
+        </View>
+
+        {/* 套餐管理按钮 */}
+        <View style={styles.section}>
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('MyPackage')}
+          >
+            <Ionicons name="gift-outline" size={24} color="#6B4C3B" />
+            <Text style={styles.menuText}>管理我的套餐</Text>
+            <Ionicons name="chevron-forward" size={24} color="#999" />
+          </TouchableOpacity>
+        </View>
+
+        {/* 身份设置 */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>身份设置</Text>
+          </View>
+          
+          <View style={styles.identityCard}>
+            <View style={styles.identityInfo}>
+              <Ionicons 
+                name={isStylist ? "cut-outline" : "person-outline"} 
+                size={24} 
+                color="#6B4C3B" 
+              />
+              <View style={styles.identityTextContainer}>
+                <Text style={styles.identityTitle}>
+                  {isStylist ? '化妆师' : '普通用户'}
+                </Text>
+                <Text style={styles.identityDescription}>
+                  {isStylist 
+                    ? '您可以管理服务套餐和日程安排' 
+                    : '切换为化妆师以提供专业服务'}
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={isStylist}
+              onValueChange={handleToggleStylist}
+              trackColor={{ false: '#ddd', true: '#6B4C3B' }}
+              thumbColor={isStylist ? '#fff' : '#f4f3f4'}
+            />
+          </View>
+        </View>
+
+        {/* 其他设置项 */}
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="settings-outline" size={24} color="#6B4C3B" />
+            <Text style={styles.menuText}>账号设置</Text>
+            <Ionicons name="chevron-forward" size={24} color="#999" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="notifications-outline" size={24} color="#6B4C3B" />
+            <Text style={styles.menuText}>通知设置</Text>
+            <Ionicons name="chevron-forward" size={24} color="#999" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="help-circle-outline" size={24} color="#6B4C3B" />
+            <Text style={styles.menuText}>帮助与反馈</Text>
+            <Ionicons name="chevron-forward" size={24} color="#999" />
+          </TouchableOpacity>
+        </View>
+
         {/* 登出按钮 */}
         <TouchableOpacity 
           style={styles.logoutButton}
@@ -410,6 +520,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
   },
+  sectionHeader: {
+    marginBottom: 15,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
@@ -420,6 +533,47 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#555',
     lineHeight: 24,
+  },
+  identityCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f9f9f9',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  identityInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  identityTextContainer: {
+    marginLeft: 15,
+    flex: 1,
+  },
+  identityTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  identityDescription: {
+    fontSize: 12,
+    color: '#666',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  menuText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 15,
   },
   logoutButton: {
     marginTop: 32,

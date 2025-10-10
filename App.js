@@ -16,6 +16,8 @@ import EditProfileScreen from './screens/EditProfileScreen';
 import BookingsScreen from './screens/BookingsScreen';
 import MessagesScreen from './screens/MessagesScreen';
 import ChatScreen from './screens/ChatScreen';
+import StylistScheduleScreen from './screens/StylistScheduleScreen';
+import MyPackageScreen from './screens/MyPackageScreen';
 
 import { auth } from './firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -106,6 +108,36 @@ function MainTabs() {
         component={EditProfileScreen}
         options={{
           title: '编辑资料',
+          headerStyle: {
+            backgroundColor: '#fff9f7',
+          },
+          headerTintColor: '#6B4C3B',
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
+          headerBackTitle: '返回',
+        }}
+      />
+      <Stack.Screen 
+        name="StylistSchedule" 
+        component={StylistScheduleScreen}
+        options={{
+          title: '日程管理',
+          headerStyle: {
+            backgroundColor: '#fff9f7',
+          },
+          headerTintColor: '#6B4C3B',
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
+          headerBackTitle: '返回',
+        }}
+      />
+      <Stack.Screen 
+        name="MyPackage" 
+        component={MyPackageScreen}
+        options={{
+          title: '我的套餐',
           headerStyle: {
             backgroundColor: '#fff9f7',
           },
