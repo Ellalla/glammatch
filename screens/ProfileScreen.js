@@ -63,7 +63,7 @@ const samplePortfolioItems = [
 
 export default function ProfileScreen({ navigation, route }) {
   const [profile, setProfile] = useState(null);
-  const [isStylist, setIsStylist] = useState(false);
+  const [userRole, setUserRole] = useState('client');
   const [loading, setLoading] = useState(true);
 
   // 获取当前用户 UID
@@ -100,7 +100,9 @@ export default function ProfileScreen({ navigation, route }) {
         console.log('Profile data:', docSnap.data());
         const profileData = docSnap.data();
         setProfile(profileData);
-        setIsStylist(profileData.isStylist || false);
+        const role = profileData.role || 'client';
+        console.log('Setting user role to:', role);
+        setUserRole(role);
         // 保存到本地存储
         await AsyncStorage.setItem('userProfile', JSON.stringify(profileData));
       } else {
@@ -143,7 +145,7 @@ export default function ProfileScreen({ navigation, route }) {
       const localProfile = await loadLocalProfile();
       if (localProfile) {
         setProfile(localProfile);
-        setIsStylist(localProfile.isStylist || false);
+        setUserRole(localProfile.role || 'client');
       } else {
         Alert.alert('错误', '加载用户资料失败，请重试');
       }
@@ -198,30 +200,9 @@ export default function ProfileScreen({ navigation, route }) {
     navigation.navigate('Bookings');
   };
 
-  const handleToggleStylist = async () => {
-    try {
-      if (!uid) return;
-
-      const newStylistStatus = !isStylist;
-      
-      // 更新用户身份
-      await updateDoc(doc(db, 'users', uid), {
-        isStylist: newStylistStatus,
-        updatedAt: new Date(),
-      });
-
-      setIsStylist(newStylistStatus);
-      
-      Alert.alert(
-        '成功',
-        newStylistStatus 
-          ? '您已成功成为化妆师！现在可以管理您的服务套餐和日程了。' 
-          : '您已切换为普通用户身份。'
-      );
-    } catch (error) {
-      console.error('更新身份失败:', error);
-      Alert.alert('错误', '更新身份失败，请稍后重试');
-    }
+  // 导航到升级为专业化妆师页面
+  const handleBecomeProfessional = () => {
+    navigation.navigate('BecomeProfessional');
   };
 
   if (loading) {
@@ -379,27 +360,29 @@ export default function ProfileScreen({ navigation, route }) {
           <View style={styles.identityCard}>
             <View style={styles.identityInfo}>
               <Ionicons 
-                name={isStylist ? "cut-outline" : "person-outline"} 
+                name={userRole === 'professional' ? "cut-outline" : "person-outline"} 
                 size={24} 
                 color="#6B4C3B" 
               />
               <View style={styles.identityTextContainer}>
                 <Text style={styles.identityTitle}>
-                  {isStylist ? '化妆师' : '普通用户'}
+                  {userRole === 'professional' ? '专业化妆师' : '普通用户'}
                 </Text>
                 <Text style={styles.identityDescription}>
-                  {isStylist 
+                  {userRole === 'professional' 
                     ? '您可以管理服务套餐和日程安排' 
-                    : '切换为化妆师以提供专业服务'}
+                    : '升级为专业化妆师以提供专业服务'}
                 </Text>
               </View>
             </View>
-            <Switch
-              value={isStylist}
-              onValueChange={handleToggleStylist}
-              trackColor={{ false: '#ddd', true: '#6B4C3B' }}
-              thumbColor={isStylist ? '#fff' : '#f4f3f4'}
-            />
+            {userRole !== 'professional' && (
+              <Button
+                title="升级"
+                onPress={handleBecomeProfessional}
+                variant="primary"
+                size="small"
+              />
+            )}
           </View>
         </View>
 

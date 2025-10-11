@@ -15,6 +15,7 @@ import EditProfileScreen from '../../screens/EditProfileScreen';
 import BookingsScreen from '../../screens/BookingsScreen';
 import ChatScreen from '../../screens/ChatScreen';
 import ThemeTestScreen from '../../screens/ThemeTestScreen';
+import BecomeProfessionalScreen from '../../screens/BecomeProfessionalScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -186,6 +187,13 @@ export default function ClientTabNavigator() {
           headerTitleStyle: {
             fontWeight: '600',
           },
+        }}
+      />
+      <Stack.Screen 
+        name="BecomeProfessional" 
+        component={BecomeProfessionalScreen}
+        options={{
+          headerShown: false,
         }}
       />
     </Stack.Navigator>

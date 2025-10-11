@@ -202,13 +202,17 @@ export default function App() {
   // 获取用户角色
   const fetchUserRole = async (userId) => {
     try {
+      console.log('正在获取用户角色，用户ID:', userId);
       const userRef = doc(db, 'users', userId);
       const userSnap = await getDoc(userRef);
       
       if (userSnap.exists()) {
         const userData = userSnap.data();
-        return userData.role || 'client'; // 默认为客户端
+        const role = userData.role || 'client';
+        console.log('获取到的用户角色:', role);
+        return role;
       }
+      console.log('用户文档不存在，使用默认角色: client');
       return 'client'; // 如果用户文档不存在，默认为客户端
     } catch (error) {
       console.error('获取用户角色失败:', error);
@@ -234,6 +238,21 @@ export default function App() {
 
     return unsubscribe;
   }, [initializing]);
+
+  // 添加一个定期刷新用户角色的机制
+  useEffect(() => {
+    if (user && !initializing) {
+      const interval = setInterval(async () => {
+        const role = await fetchUserRole(user.uid);
+        if (role !== userRole) {
+          console.log('检测到角色变化，从', userRole, '变为', role);
+          setUserRole(role);
+        }
+      }, 2000); // 每2秒检查一次
+
+      return () => clearInterval(interval);
+    }
+  }, [user, initializing, userRole]);
 
   // 显示加载状态
   if (initializing) {
