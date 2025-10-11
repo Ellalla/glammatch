@@ -19,9 +19,16 @@ import ChatScreen from './screens/ChatScreen';
 import StylistScheduleScreen from './screens/StylistScheduleScreen';
 import MyPackageScreen from './screens/MyPackageScreen';
 import ThemeTestScreen from './screens/ThemeTestScreen';
+import CreatePostScreen from './screens/CreatePostScreen';
+import ArtistPageScreen from './screens/ArtistPageScreen';
 
-import { auth } from './firebaseConfig';
+// 导入基于角色的导航器
+import ClientTabNavigator from './src/navigation/ClientTabNavigator';
+import ProTabNavigator from './src/navigation/ProTabNavigator';
+
+import { auth, db } from './firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -189,12 +196,39 @@ function MainTabs() {
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [userRole, setUserRole] = useState(null);
   const [initializing, setInitializing] = useState(true);
+
+  // 获取用户角色
+  const fetchUserRole = async (userId) => {
+    try {
+      const userRef = doc(db, 'users', userId);
+      const userSnap = await getDoc(userRef);
+      
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        return userData.role || 'client'; // 默认为客户端
+      }
+      return 'client'; // 如果用户文档不存在，默认为客户端
+    } catch (error) {
+      console.error('获取用户角色失败:', error);
+      return 'client'; // 出错时默认为客户端
+    }
+  };
 
   // 监听用户身份验证状态
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
+      
+      if (user) {
+        // 获取用户角色
+        const role = await fetchUserRole(user.uid);
+        setUserRole(role);
+      } else {
+        setUserRole(null);
+      }
+      
       if (initializing) setInitializing(false);
     });
 
@@ -206,9 +240,24 @@ export default function App() {
     return null;
   }
 
+  // 根据用户角色渲染不同的导航器
+  const renderMainNavigator = () => {
+    if (!user) return <AuthStack />;
+    
+    // 调试信息
+    console.log('Current user role:', userRole);
+    console.log('Rendering navigator for role:', userRole === 'professional' ? 'Professional' : 'Client');
+    
+    if (userRole === 'professional') {
+      return <ProTabNavigator />;
+    } else {
+      return <ClientTabNavigator />;
+    }
+  };
+
   return (
     <NavigationContainer>
-      {user ? <MainTabs /> : <AuthStack />}
+      {renderMainNavigator()}
     </NavigationContainer>
   );
 }

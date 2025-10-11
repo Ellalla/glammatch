@@ -427,13 +427,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 8,
     width: 200,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.25)',
     elevation: 5,
   },
   menuItem: {

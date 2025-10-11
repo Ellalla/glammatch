@@ -128,10 +128,7 @@ const styles = StyleSheet.create({
   },
   elevated: {
     backgroundColor: colors.background.secondary,
-    shadowColor: colors.shadow.medium,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
+    boxShadow: `0px 4px 8px ${colors.shadow.medium}`,
     elevation: 6,
   },
   outlined: {
@@ -173,10 +170,7 @@ const styles = StyleSheet.create({
   
   // 阴影
   shadow: {
-    shadowColor: colors.shadow.light,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
+    boxShadow: `0px 2px 4px ${colors.shadow.light}`,
     elevation: 3,
   },
 });

@@ -176,18 +176,12 @@ const styles = StyleSheet.create({
   // 变体样式
   primary: {
     backgroundColor: colors.primary,
-    shadowColor: colors.shadow.light,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
+    boxShadow: `0px 2px 4px ${colors.shadow.light}`,
     elevation: 3,
   },
   secondary: {
     backgroundColor: colors.secondary,
-    shadowColor: colors.shadow.light,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
+    boxShadow: `0px 2px 4px ${colors.shadow.light}`,
     elevation: 3,
   },
   outline: {
@@ -200,15 +194,12 @@ const styles = StyleSheet.create({
   },
   danger: {
     backgroundColor: colors.status.error,
-    shadowColor: colors.shadow.light,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
+    boxShadow: `0px 2px 4px ${colors.shadow.light}`,
     elevation: 3,
   },
   disabled: {
     backgroundColor: colors.gray[300],
-    shadowOpacity: 0,
+    boxShadow: 'none',
     elevation: 0,
   },
   
