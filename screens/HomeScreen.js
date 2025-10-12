@@ -13,9 +13,10 @@ import {
   Modal,
   Animated
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { auth } from '../firebaseConfig';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { auth, db } from '../firebaseConfig';
 import { signOut } from 'firebase/auth';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -24,6 +25,36 @@ export default function HomeScreen() {
   const [user, setUser] = useState(null);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [menuAnimation] = useState(new Animated.Value(0));
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 获取帖子数据
+  const loadPosts = async () => {
+    try {
+      console.log('正在加载帖子...');
+      const postsRef = collection(db, 'posts');
+      const q = query(postsRef, orderBy('createdAt', 'desc'), limit(20));
+      const querySnapshot = await getDocs(q);
+      
+      const postsData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      console.log('加载到', postsData.length, '个帖子');
+      console.log('最新帖子:', postsData[0] ? {
+        id: postsData[0].id,
+        description: postsData[0].description?.substring(0, 50) + '...',
+        createdAt: postsData[0].createdAt
+      } : '无帖子');
+      
+      setPosts(postsData);
+    } catch (error) {
+      console.error('获取帖子失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // 检查用户登录状态
   useEffect(() => {
@@ -32,6 +63,19 @@ export default function HomeScreen() {
     });
     return unsubscribe;
   }, []);
+
+  // 页面加载时获取帖子
+  useEffect(() => {
+    loadPosts();
+  }, []);
+
+  // 监听页面焦点变化，当从其他页面返回时自动刷新帖子
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('首页获得焦点，刷新帖子列表...');
+      loadPosts();
+    }, [])
+  );
 
   // 处理登出
   const handleLogout = async () => {
@@ -73,11 +117,10 @@ export default function HomeScreen() {
   };
 
   // 模拟下拉刷新
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1500);
+    await loadPosts();
+    setRefreshing(false);
   };
 
   const mockPosts = [
@@ -116,69 +159,91 @@ export default function HomeScreen() {
     },
   ];
 
-  const renderPost = ({ item }) => (
-    <View style={styles.postContainer}>
-      {/* 用户信息栏 */}
-      <View style={styles.userHeader}>
-        <TouchableOpacity style={styles.userInfo}>
-          <Image source={{ uri: item.avatar }} style={styles.avatar} />
-          <View>
-            <Text style={styles.username}>{item.username}</Text>
-            {item.location && (
-              <Text style={styles.location}>{item.location}</Text>
-            )}
-          </View>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.moreButton}>
-          <Text style={styles.moreButtonText}>•••</Text>
-        </TouchableOpacity>
-      </View>
+  const renderPost = ({ item }) => {
+    // 格式化时间
+    const formatTime = (timestamp) => {
+      if (!timestamp) return '刚刚';
+      const now = new Date();
+      const postTime = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      const diffInMinutes = Math.floor((now - postTime) / (1000 * 60));
+      
+      if (diffInMinutes < 1) return '刚刚';
+      if (diffInMinutes < 60) return `${diffInMinutes}分钟前`;
+      if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}小时前`;
+      return `${Math.floor(diffInMinutes / 1440)}天前`;
+    };
 
-      {/* 帖子图片 */}
-      <Image source={{ uri: item.image }} style={styles.postImage} />
-
-      {/* 操作按钮栏 */}
-      <View style={styles.actionsContainer}>
-        <View style={styles.leftActions}>
-          <TouchableOpacity style={styles.actionButton}>
-            <Text style={styles.actionIcon}>♥</Text>
+    return (
+      <View style={styles.postContainer}>
+        {/* 用户信息栏 */}
+        <View style={styles.userHeader}>
+          <TouchableOpacity style={styles.userInfo}>
+            <Image 
+              source={{ uri: 'https://via.placeholder.com/60/6B4C3B/FFFFFF?text=U' }} 
+              style={styles.avatar} 
+            />
+            <View>
+              <Text style={styles.username}>{item.userEmail || '用户'}</Text>
+              <Text style={styles.location}>美妆体验分享</Text>
+            </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <Text style={styles.actionIcon}>💬</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <Text style={styles.actionIcon}>↗</Text>
+          
+          <TouchableOpacity style={styles.moreButton}>
+            <Text style={styles.moreButtonText}>•••</Text>
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionIcon}>🔖</Text>
-        </TouchableOpacity>
-      </View>
+        {/* 帖子图片 - 显示第一张图片 */}
+        {item.images && item.images.length > 0 && (
+          <Image source={{ uri: item.images[0] }} style={styles.postImage} />
+        )}
 
-      {/* 点赞信息 */}
-      <Text style={styles.likes}>{item.likes} 人点赞</Text>
+        {/* 操作按钮栏 */}
+        <View style={styles.actionsContainer}>
+          <View style={styles.leftActions}>
+            <TouchableOpacity style={styles.actionButton}>
+              <Text style={styles.actionIcon}>♥</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton}>
+              <Text style={styles.actionIcon}>💬</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton}>
+              <Text style={styles.actionIcon}>↗</Text>
+            </TouchableOpacity>
+          </View>
 
-      {/* 标题和评论 */}
-      <View style={styles.captionContainer}>
-        <Text style={styles.captionUsername}>{item.username}</Text>
-        <Text style={styles.caption}>{item.caption}</Text>
-      </View>
+          <TouchableOpacity style={styles.actionButton}>
+            <Text style={styles.actionIcon}>🔖</Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* 查看评论 */}
-      {item.comments > 0 && (
+        {/* 点赞信息 */}
+        <Text style={styles.likes}>{item.likes || 0} 人点赞</Text>
+
+        {/* 标题和评论 */}
+        <View style={styles.captionContainer}>
+          <Text style={styles.captionUsername}>{item.userEmail || '用户'}</Text>
+          <Text style={styles.caption}>{item.description}</Text>
+          {/* 显示@的化妆师 */}
+          {item.taggedArtistName && (
+            <Text style={styles.taggedArtist}>
+              @{item.taggedArtistName}
+            </Text>
+          )}
+        </View>
+
+        {/* 查看评论 */}
         <TouchableOpacity>
           <Text style={styles.viewComments}>
-            查看全部 {item.comments} 条评论
+            查看全部 {item.comments || 0} 条评论
           </Text>
         </TouchableOpacity>
-      )}
 
-      {/* 时间戳 */}
-      <Text style={styles.timestamp}>{item.time}</Text>
-    </View>
-  );
+        {/* 时间戳 */}
+        <Text style={styles.timestamp}>{formatTime(item.createdAt)}</Text>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -267,7 +332,7 @@ export default function HomeScreen() {
 
       {/* 帖子列表 */}
       <FlatList
-        data={mockPosts}
+        data={posts}
         keyExtractor={item => item.id}
         renderItem={renderPost}
         showsVerticalScrollIndicator={false}
@@ -413,6 +478,13 @@ const styles = StyleSheet.create({
     color: '#999',
     marginLeft: 12,
     marginTop: 2,
+  },
+  taggedArtist: {
+    fontSize: 14,
+    color: '#6B4C3B',
+    fontWeight: '600',
+    marginTop: 4,
+    marginLeft: 12,
   },
   modalOverlay: {
     flex: 1,
