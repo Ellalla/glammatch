@@ -9,9 +9,10 @@ import {
   FlatList,
   SafeAreaView,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { auth, db } from '../firebaseConfig';
-import { collection, query, where, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, doc, getDoc, limit, startAfter } from 'firebase/firestore';
 import { colors, typography } from '../src/theme';
 import { Button, Card, Avatar } from '../src/components';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -24,6 +25,16 @@ export default function ArtistPageScreen({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('portfolio'); // 'portfolio' or 'shares'
+  
+  // 分页相关状态
+  const [portfolioLoading, setPortfolioLoading] = useState(false);
+  const [sharesLoading, setSharesLoading] = useState(false);
+  const [portfolioLastDoc, setPortfolioLastDoc] = useState(null);
+  const [sharesLastDoc, setSharesLastDoc] = useState(null);
+  const [portfolioHasMore, setPortfolioHasMore] = useState(true);
+  const [sharesHasMore, setSharesHasMore] = useState(true);
+  
+  const POSTS_PER_PAGE = 10; // 每页加载的帖子数量
 
   // 获取化妆师信息
   const loadArtist = async () => {
@@ -40,16 +51,31 @@ export default function ArtistPageScreen({ navigation, route }) {
     }
   };
 
-  // 获取作品集
-  const loadPortfolio = async () => {
+  // 获取作品集（支持分页）
+  const loadPortfolio = async (isLoadMore = false) => {
+    if (portfolioLoading) return;
+    
+    setPortfolioLoading(true);
     try {
       const targetArtistId = artistId || auth.currentUser?.uid;
       const portfolioRef = collection(db, 'portfolio');
-      const q = query(
+      
+      // 简化查询，避免需要复合索引
+      let q = query(
         portfolioRef,
         where('artistId', '==', targetArtistId),
-        orderBy('createdAt', 'desc')
+        limit(POSTS_PER_PAGE)
       );
+      
+      // 如果是加载更多，从上次的文档开始
+      if (isLoadMore && portfolioLastDoc) {
+        q = query(
+          portfolioRef,
+          where('artistId', '==', targetArtistId),
+          startAfter(portfolioLastDoc),
+          limit(POSTS_PER_PAGE)
+        );
+      }
       
       const querySnapshot = await getDocs(q);
       const portfolioData = querySnapshot.docs.map(doc => ({
@@ -57,22 +83,60 @@ export default function ArtistPageScreen({ navigation, route }) {
         ...doc.data()
       }));
       
-      setPortfolio(portfolioData);
+      // 客户端排序（按创建时间降序）
+      portfolioData.sort((a, b) => {
+        const timeA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+        const timeB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+        return timeB - timeA;
+      });
+      
+      if (isLoadMore) {
+        setPortfolio(prev => [...prev, ...portfolioData]);
+      } else {
+        setPortfolio(portfolioData);
+      }
+      
+      // 更新分页状态
+      if (querySnapshot.docs.length < POSTS_PER_PAGE) {
+        setPortfolioHasMore(false);
+      } else {
+        setPortfolioLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1]);
+        setPortfolioHasMore(true);
+      }
+      
+      console.log(`作品集加载完成: ${portfolioData.length} 个项目`);
     } catch (error) {
       console.error('获取作品集失败:', error);
+    } finally {
+      setPortfolioLoading(false);
     }
   };
 
-  // 获取客户分享
-  const loadClientShares = async () => {
+  // 获取客户分享（支持分页）
+  const loadClientShares = async (isLoadMore = false) => {
+    if (sharesLoading) return;
+    
+    setSharesLoading(true);
     try {
       const targetArtistId = artistId || auth.currentUser?.uid;
       const postsRef = collection(db, 'posts');
-      const q = query(
+      
+      // 简化查询，避免需要复合索引
+      let q = query(
         postsRef,
         where('taggedArtistId', '==', targetArtistId),
-        orderBy('createdAt', 'desc')
+        limit(POSTS_PER_PAGE)
       );
+      
+      // 如果是加载更多，从上次的文档开始
+      if (isLoadMore && sharesLastDoc) {
+        q = query(
+          postsRef,
+          where('taggedArtistId', '==', targetArtistId),
+          startAfter(sharesLastDoc),
+          limit(POSTS_PER_PAGE)
+        );
+      }
       
       const querySnapshot = await getDocs(q);
       const sharesData = querySnapshot.docs.map(doc => ({
@@ -80,9 +144,32 @@ export default function ArtistPageScreen({ navigation, route }) {
         ...doc.data()
       }));
       
-      setClientShares(sharesData);
+      // 客户端排序（按创建时间降序）
+      sharesData.sort((a, b) => {
+        const timeA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+        const timeB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+        return timeB - timeA;
+      });
+      
+      if (isLoadMore) {
+        setClientShares(prev => [...prev, ...sharesData]);
+      } else {
+        setClientShares(sharesData);
+      }
+      
+      // 更新分页状态
+      if (querySnapshot.docs.length < POSTS_PER_PAGE) {
+        setSharesHasMore(false);
+      } else {
+        setSharesLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1]);
+        setSharesHasMore(true);
+      }
+      
+      console.log(`客户分享加载完成: ${sharesData.length} 个帖子`);
     } catch (error) {
       console.error('获取客户分享失败:', error);
+    } finally {
+      setSharesLoading(false);
     }
   };
 
@@ -90,15 +177,35 @@ export default function ArtistPageScreen({ navigation, route }) {
   const loadData = async () => {
     setLoading(true);
     try {
+      // 重置分页状态
+      setPortfolioLastDoc(null);
+      setSharesLastDoc(null);
+      setPortfolioHasMore(true);
+      setSharesHasMore(true);
+      
       await Promise.all([
         loadArtist(),
-        loadPortfolio(),
-        loadClientShares()
+        loadPortfolio(false), // 初始加载
+        loadClientShares(false) // 初始加载
       ]);
     } catch (error) {
       console.error('加载数据失败:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 加载更多作品集
+  const loadMorePortfolio = () => {
+    if (portfolioHasMore && !portfolioLoading) {
+      loadPortfolio(true);
+    }
+  };
+
+  // 加载更多客户分享
+  const loadMoreShares = () => {
+    if (sharesHasMore && !sharesLoading) {
+      loadClientShares(true);
     }
   };
 
@@ -127,16 +234,33 @@ export default function ArtistPageScreen({ navigation, route }) {
     </Card>
   );
 
+  // 渲染作品集加载更多
+  const renderPortfolioFooter = () => {
+    if (!portfolioHasMore) return null;
+    
+    return (
+      <View style={styles.loadMoreContainer}>
+        {portfolioLoading ? (
+          <ActivityIndicator size="small" color={colors.primary} />
+        ) : (
+          <TouchableOpacity style={styles.loadMoreButton} onPress={loadMorePortfolio}>
+            <Text style={styles.loadMoreText}>加载更多作品</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+
   // 渲染客户分享项目
   const renderClientShareItem = ({ item }) => (
     <Card variant="elevated" padding="medium" margin="small">
       <View style={styles.shareHeader}>
         <Avatar 
-          name={item.userName || '用户'} 
+          name={item.userEmail || '用户'} 
           size="small" 
         />
         <View style={styles.shareUserInfo}>
-          <Text style={styles.shareUserName}>{item.userName || '匿名用户'}</Text>
+          <Text style={styles.shareUserName}>{item.userEmail || '匿名用户'}</Text>
           <Text style={styles.shareDate}>
             {new Date(item.createdAt?.toDate()).toLocaleDateString()}
           </Text>
@@ -174,6 +298,23 @@ export default function ArtistPageScreen({ navigation, route }) {
       </View>
     </Card>
   );
+
+  // 渲染客户分享加载更多
+  const renderSharesFooter = () => {
+    if (!sharesHasMore) return null;
+    
+    return (
+      <View style={styles.loadMoreContainer}>
+        {sharesLoading ? (
+          <ActivityIndicator size="small" color={colors.primary} />
+        ) : (
+          <TouchableOpacity style={styles.loadMoreButton} onPress={loadMoreShares}>
+            <Text style={styles.loadMoreText}>加载更多分享</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
 
   if (loading) {
     return (
@@ -232,6 +373,27 @@ export default function ArtistPageScreen({ navigation, route }) {
               <Text style={styles.statLabel}>评分</Text>
             </View>
           </View>
+          
+          {/* 联系化妆师按钮 */}
+          {artistId && artistId !== auth.currentUser?.uid && (
+            <View style={styles.contactSection}>
+              <Button
+                title="联系化妆师"
+                onPress={() => navigation.navigate('Chat', { 
+                  conversationId: `chat_${auth.currentUser?.uid}_${artistId}`,
+                  otherUser: {
+                    id: artistId,
+                    displayName: artist?.displayName || artist?.email || '化妆师',
+                    avatar: artist?.avatar || null
+                  }
+                })}
+                variant="primary"
+                size="medium"
+                icon="chatbubble"
+                style={styles.contactButton}
+              />
+            </View>
+          )}
         </Card>
 
         {/* 标签页切换 */}
@@ -264,6 +426,7 @@ export default function ArtistPageScreen({ navigation, route }) {
                 keyExtractor={item => item.id}
                 scrollEnabled={false}
                 showsVerticalScrollIndicator={false}
+                ListFooterComponent={renderPortfolioFooter}
               />
             ) : (
               <Card variant="outlined" padding="large" margin="medium">
@@ -284,6 +447,7 @@ export default function ArtistPageScreen({ navigation, route }) {
                 keyExtractor={item => item.id}
                 scrollEnabled={false}
                 showsVerticalScrollIndicator={false}
+                ListFooterComponent={renderSharesFooter}
               />
             ) : (
               <Card variant="outlined" padding="large" margin="medium">
@@ -514,5 +678,29 @@ const styles = StyleSheet.create({
     ...typography.styles.body,
     color: colors.text.tertiary,
     textAlign: 'center',
+  },
+  loadMoreContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  loadMoreButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 20,
+  },
+  loadMoreText: {
+    ...typography.styles.label,
+    color: colors.white,
+    fontWeight: '600',
+  },
+  contactSection: {
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+  },
+  contactButton: {
+    width: '100%',
   },
 });

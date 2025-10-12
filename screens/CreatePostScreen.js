@@ -155,7 +155,7 @@ export default function CreatePostScreen({ navigation }) {
         ),
         description: description.trim(),
         taggedArtistId: taggedArtist?.id || null,
-        taggedArtistName: taggedArtist?.displayName || null,
+        taggedArtistName: taggedArtist?.displayName || taggedArtist?.email || '未知化妆师',
         visibility: 'public', // 公开可见
         likes: 0,
         comments: 0,
@@ -163,7 +163,6 @@ export default function CreatePostScreen({ navigation }) {
         updatedAt: serverTimestamp(),
       };
 
-      console.log('帖子数据:', postData);
       console.log('正在保存帖子到 Firestore...');
       // 保存到 Firestore
       const postsRef = collection(db, 'posts');

@@ -225,10 +225,14 @@ export default function HomeScreen() {
           <Text style={styles.captionUsername}>{item.userEmail || '用户'}</Text>
           <Text style={styles.caption}>{item.description}</Text>
           {/* 显示@的化妆师 */}
-          {item.taggedArtistName && (
-            <Text style={styles.taggedArtist}>
-              @{item.taggedArtistName}
-            </Text>
+          {item.taggedArtistId && (
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('ArtistPage', { artistId: item.taggedArtistId })}
+            >
+              <Text style={styles.taggedArtist}>
+                @{item.taggedArtistName || '化妆师'}
+              </Text>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -485,6 +489,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 4,
     marginLeft: 12,
+    textDecorationLine: 'underline',
   },
   modalOverlay: {
     flex: 1,
