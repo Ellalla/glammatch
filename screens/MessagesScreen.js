@@ -51,6 +51,38 @@ export default function MessagesScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const currentUserId = auth.currentUser?.uid;
 
+  // 合并同一用户的多个会话
+  const mergeConversationsByUser = (conversations) => {
+    const userMap = new Map();
+    
+    conversations.forEach(conversation => {
+      const userId = conversation.otherUserId;
+      
+      if (userMap.has(userId)) {
+        // 如果已存在该用户的会话，保留最新的
+        const existing = userMap.get(userId);
+        if (conversation.timestamp > existing.timestamp) {
+          userMap.set(userId, {
+            ...conversation,
+            // 合并未读计数
+            unreadCount: existing.unreadCount + conversation.unreadCount
+          });
+        } else {
+          // 保留现有的，但合并未读计数
+          userMap.set(userId, {
+            ...existing,
+            unreadCount: existing.unreadCount + conversation.unreadCount
+          });
+        }
+      } else {
+        // 新用户，直接添加
+        userMap.set(userId, conversation);
+      }
+    });
+    
+    return Array.from(userMap.values());
+  };
+
   // 获取用户信息
   const getUserInfo = async (userId) => {
     try {
@@ -112,9 +144,12 @@ export default function MessagesScreen({ navigation }) {
         }
       }
 
+      // 合并同一用户的多个会话
+      const mergedConversations = mergeConversationsByUser(conversationsData);
+      
       // 按更新时间排序（最新的在前）
-      conversationsData.sort((a, b) => b.timestamp - a.timestamp);
-      setConversations(conversationsData);
+      mergedConversations.sort((a, b) => b.timestamp - a.timestamp);
+      setConversations(mergedConversations);
     } catch (error) {
       console.error('加载会话列表失败:', error);
       // 如果出错，使用模拟数据
@@ -157,9 +192,12 @@ export default function MessagesScreen({ navigation }) {
         }
       }
 
+      // 合并同一用户的多个会话
+      const mergedConversations = mergeConversationsByUser(conversationsData);
+      
       // 按更新时间排序（最新的在前）
-      conversationsData.sort((a, b) => b.timestamp - a.timestamp);
-      setConversations(conversationsData);
+      mergedConversations.sort((a, b) => b.timestamp - a.timestamp);
+      setConversations(mergedConversations);
       setLoading(false);
     }, (error) => {
       console.error('监听会话失败:', error);
