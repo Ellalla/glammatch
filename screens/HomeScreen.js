@@ -177,7 +177,10 @@ export default function HomeScreen() {
       <View style={styles.postContainer}>
         {/* 用户信息栏 */}
         <View style={styles.userHeader}>
-          <TouchableOpacity style={styles.userInfo}>
+          <TouchableOpacity 
+            style={styles.userInfo}
+            onPress={() => navigation.navigate('UserProfile', { userId: item.userId })}
+          >
             <Image 
               source={{ uri: 'https://via.placeholder.com/60/6B4C3B/FFFFFF?text=U' }} 
               style={styles.avatar} 

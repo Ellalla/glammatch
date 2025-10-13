@@ -9,6 +9,8 @@ import {
   addDoc,
   updateDoc,
   doc,
+  getDoc,
+  setDoc,
   serverTimestamp,
   onSnapshot,
 } from 'firebase/firestore';
@@ -38,6 +40,9 @@ export class MessageService {
   // 发送消息
   static async sendMessage(conversationId, senderId, receiverId, content, type = MESSAGE_TYPES.TEXT) {
     try {
+      // 首先确保会话存在
+      await this.ensureConversationExists(conversationId, [senderId, receiverId]);
+
       const messagesRef = collection(db, 'messages');
       const messageData = {
         conversationId,
@@ -47,21 +52,68 @@ export class MessageService {
         type,
         status: MESSAGE_STATUS.SENT,
         timestamp: serverTimestamp(),
+        createdAt: serverTimestamp(),
       };
 
       const docRef = await addDoc(messagesRef, messageData);
+      console.log('消息已保存到 Firestore，文档ID:', docRef.id);
       
-      // 更新会话的最后一条消息
+      // 更新会话的最后一条消息和未读计数
       const conversationRef = doc(db, 'conversations', conversationId);
       await updateDoc(conversationRef, {
-        lastMessage: messageData,
+        lastMessage: {
+          content,
+          senderId,
+          timestamp: serverTimestamp(),
+          type,
+        },
         updatedAt: serverTimestamp(),
-        unreadCount: 1,
+        [`unreadCount.${receiverId}`]: 1, // 为接收者增加未读计数
       });
+      console.log('会话信息已更新');
+
+      // 延迟更新消息状态为已送达
+      setTimeout(async () => {
+        try {
+          await updateDoc(docRef, {
+            status: MESSAGE_STATUS.DELIVERED,
+          });
+        } catch (error) {
+          console.error('更新消息状态失败:', error);
+        }
+      }, 1000);
 
       return docRef.id;
     } catch (error) {
       console.error('发送消息失败:', error);
+      throw error;
+    }
+  }
+
+  // 确保会话存在
+  static async ensureConversationExists(conversationId, participants) {
+    try {
+      console.log('检查会话是否存在:', conversationId);
+      const conversationRef = doc(db, 'conversations', conversationId);
+      const conversationDoc = await getDoc(conversationRef);
+      
+      if (!conversationDoc.exists()) {
+        console.log('会话不存在，创建新会话:', conversationId);
+        // 创建新会话
+        await setDoc(conversationRef, {
+          participants,
+          type: 'private',
+          lastMessage: null,
+          unreadCount: {},
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+        console.log('新会话创建成功:', conversationId);
+      } else {
+        console.log('会话已存在:', conversationId);
+      }
+    } catch (error) {
+      console.error('确保会话存在失败:', error);
       throw error;
     }
   }
@@ -112,11 +164,13 @@ export class MessageService {
   // 标记消息为已读
   static async markAsRead(conversationId, userId) {
     try {
+      // 更新会话的未读计数
       const conversationRef = doc(db, 'conversations', conversationId);
       await updateDoc(conversationRef, {
-        unreadCount: 0
+        [`unreadCount.${userId}`]: 0
       });
 
+      // 更新该用户接收的消息状态为已读
       const messagesRef = collection(db, 'messages');
       const q = query(
         messagesRef,
@@ -129,10 +183,15 @@ export class MessageService {
       const batch = db.batch();
 
       querySnapshot.docs.forEach(doc => {
-        batch.update(doc.ref, { status: MESSAGE_STATUS.READ });
+        batch.update(doc.ref, { 
+          status: MESSAGE_STATUS.READ,
+          readAt: serverTimestamp()
+        });
       });
 
-      await batch.commit();
+      if (querySnapshot.docs.length > 0) {
+        await batch.commit();
+      }
     } catch (error) {
       console.error('标记消息已读失败:', error);
       throw error;

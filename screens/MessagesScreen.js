@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,11 @@ import {
   Image,
   SafeAreaView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { auth, db } from '../firebaseConfig';
 import { MessageService } from '../services/MessageService';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DefaultAvatar from '../components/DefaultAvatar';
 
@@ -46,14 +47,134 @@ const MOCK_USERS = [
 export default function MessagesScreen({ navigation }) {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const currentUserId = auth.currentUser?.uid;
+
+  // 获取用户信息
+  const getUserInfo = async (userId) => {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        return {
+          id: userId,
+          displayName: userDoc.data().displayName || userDoc.data().email || '用户',
+          avatar: userDoc.data().avatar || null,
+        };
+      }
+      return {
+        id: userId,
+        displayName: '用户',
+        avatar: null,
+      };
+    } catch (error) {
+      console.error('获取用户信息失败:', error);
+      return {
+        id: userId,
+        displayName: '用户',
+        avatar: null,
+      };
+    }
+  };
+
+  // 加载会话列表
+  const loadConversations = useCallback(async () => {
+    if (!currentUserId) return;
+
+    try {
+      setLoading(true);
+      const conversationsRef = collection(db, 'conversations');
+      const q = query(
+        conversationsRef,
+        where('participants', 'array-contains', currentUserId),
+        orderBy('updatedAt', 'desc')
+      );
+
+      const querySnapshot = await getDocs(q);
+      const conversationsData = [];
+
+      for (const docSnapshot of querySnapshot.docs) {
+        const conversationData = docSnapshot.data();
+        const otherUserId = conversationData.participants.find(id => id !== currentUserId);
+        
+        if (otherUserId) {
+          const userInfo = await getUserInfo(otherUserId);
+          const unreadCount = conversationData.unreadCount?.[currentUserId] || 0;
+          
+          conversationsData.push({
+            id: docSnapshot.id,
+            ...userInfo,
+            lastMessage: conversationData.lastMessage?.content || '暂无消息',
+            timestamp: conversationData.lastMessage?.timestamp?.toDate() || conversationData.updatedAt?.toDate() || new Date(),
+            unreadCount,
+          });
+        }
+      }
+
+      setConversations(conversationsData);
+    } catch (error) {
+      console.error('加载会话列表失败:', error);
+      // 如果出错，使用模拟数据
+      setConversations(MOCK_USERS);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUserId]);
+
+  // 设置实时监听
+  const setupConversationListener = useCallback(() => {
+    if (!currentUserId) return;
+
+    const conversationsRef = collection(db, 'conversations');
+    const q = query(
+      conversationsRef,
+      where('participants', 'array-contains', currentUserId),
+      orderBy('updatedAt', 'desc')
+    );
+
+    return onSnapshot(q, async (snapshot) => {
+      const conversationsData = [];
+
+      for (const docSnapshot of snapshot.docs) {
+        const conversationData = docSnapshot.data();
+        const otherUserId = conversationData.participants.find(id => id !== currentUserId);
+        
+        if (otherUserId) {
+          const userInfo = await getUserInfo(otherUserId);
+          const unreadCount = conversationData.unreadCount?.[currentUserId] || 0;
+          
+          conversationsData.push({
+            id: docSnapshot.id,
+            ...userInfo,
+            lastMessage: conversationData.lastMessage?.content || '暂无消息',
+            timestamp: conversationData.lastMessage?.timestamp?.toDate() || conversationData.updatedAt?.toDate() || new Date(),
+            unreadCount,
+          });
+        }
+      }
+
+      setConversations(conversationsData);
+      setLoading(false);
+    }, (error) => {
+      console.error('监听会话失败:', error);
+      setLoading(false);
+    });
+  }, [currentUserId]);
 
   useEffect(() => {
-    // 模拟加载数据
-    setTimeout(() => {
-      setConversations(MOCK_USERS);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    const unsubscribe = setupConversationListener();
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [setupConversationListener]);
+
+  // 下拉刷新
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadConversations();
+    setRefreshing(false);
+  }, [loadConversations]);
 
   // 处理会话点击
   const handleConversationPress = (item) => {
@@ -132,6 +253,20 @@ export default function MessagesScreen({ navigation }) {
     );
   };
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>消息</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6B4C3B" />
+          <Text style={styles.loadingText}>加载消息中...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
@@ -142,10 +277,13 @@ export default function MessagesScreen({ navigation }) {
         renderItem={renderConversation}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.list}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="chatbubbles-outline" size={48} color="#ccc" />
             <Text style={styles.emptyText}>暂无消息</Text>
+            <Text style={styles.emptySubtext}>开始与化妆师或客户聊天吧！</Text>
           </View>
         }
       />
@@ -235,9 +373,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 32,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#999',
+  },
   emptyText: {
     marginTop: 8,
     fontSize: 16,
     color: '#999',
+  },
+  emptySubtext: {
+    marginTop: 4,
+    fontSize: 14,
+    color: '#ccc',
   },
 }); 

@@ -14,6 +14,7 @@ import ArtistPageScreen from '../../screens/ArtistPageScreen'; // 化妆师页�
 import EditProfileScreen from '../../screens/EditProfileScreen';
 import BookingsScreen from '../../screens/BookingsScreen';
 import ChatScreen from '../../screens/ChatScreen';
+import UserProfileScreen from '../../screens/UserProfileScreen';
 import ThemeTestScreen from '../../screens/ThemeTestScreen';
 import BecomeProfessionalScreen from '../../screens/BecomeProfessionalScreen';
 
@@ -166,6 +167,20 @@ export default function ClientTabNavigator() {
         name="Chat" 
         component={ChatScreen}
         options={{
+          headerStyle: {
+            backgroundColor: colors.background.primary,
+          },
+          headerTintColor: colors.primary,
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
+        }}
+      />
+      <Stack.Screen 
+        name="UserProfile" 
+        component={UserProfileScreen}
+        options={{
+          title: '用户主页',
           headerStyle: {
             backgroundColor: colors.background.primary,
           },

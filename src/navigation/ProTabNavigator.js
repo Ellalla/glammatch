@@ -12,8 +12,10 @@ import MyPackageScreen from '../../screens/MyPackageScreen';
 import MessagesScreen from '../../screens/MessagesScreen';
 import ProfileScreen from '../../screens/ProfileScreen';
 import ArtistPageScreen from '../../screens/ArtistPageScreen'; // 专业化妆师的作品集页面
+import MentionsScreen from '../../screens/MentionsScreen'; // 被@提醒页面
 import EditProfileScreen from '../../screens/EditProfileScreen';
 import ChatScreen from '../../screens/ChatScreen';
+import UserProfileScreen from '../../screens/UserProfileScreen';
 import ThemeTestScreen from '../../screens/ThemeTestScreen';
 
 const Tab = createBottomTabNavigator();
@@ -40,6 +42,9 @@ function ProTabs() {
               break;
             case 'Packages':
               iconName = focused ? 'gift' : 'gift-outline';
+              break;
+            case 'Mentions':
+              iconName = focused ? 'notifications' : 'notifications-outline';
               break;
             case 'Messages':
               iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
@@ -106,6 +111,14 @@ function ProTabs() {
         }} 
       />
       <Tab.Screen 
+        name="Mentions" 
+        component={MentionsScreen} 
+        options={{ 
+          tabBarLabel: '提醒',
+          title: '被@提醒'
+        }} 
+      />
+      <Tab.Screen 
         name="Messages" 
         component={MessagesScreen} 
         options={{ 
@@ -169,6 +182,20 @@ export default function ProTabNavigator() {
         name="Chat" 
         component={ChatScreen}
         options={{
+          headerStyle: {
+            backgroundColor: colors.background.primary,
+          },
+          headerTintColor: colors.primary,
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
+        }}
+      />
+      <Stack.Screen 
+        name="UserProfile" 
+        component={UserProfileScreen}
+        options={{
+          title: '用户主页',
           headerStyle: {
             backgroundColor: colors.background.primary,
           },

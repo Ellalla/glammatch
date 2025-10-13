@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,10 +13,12 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { auth } from '../firebaseConfig';
-import { MESSAGE_TYPES } from '../models/Message';
+import { auth, db } from '../firebaseConfig';
+import { MESSAGE_TYPES, MESSAGE_STATUS } from '../models/Message';
+import { MessageService } from '../services/MessageService';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DefaultAvatar from '../components/DefaultAvatar';
+import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
 
 // 模拟消息数据
 const MOCK_MESSAGES = {
@@ -77,8 +79,81 @@ export default function ChatScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const flatListRef = useRef(null);
-  const userId = 'currentUser'; // 模拟当前用户ID
+  const unsubscribeRef = useRef(null);
+  const currentUserId = auth.currentUser?.uid;
+
+  // 设置实时消息监听
+  const setupMessageListener = useCallback(() => {
+    if (!conversationId || !currentUserId) return;
+
+    const messagesRef = collection(db, 'messages');
+    const q = query(
+      messagesRef,
+      where('conversationId', '==', conversationId),
+      orderBy('timestamp', 'asc')
+    );
+
+    unsubscribeRef.current = onSnapshot(q, (snapshot) => {
+      console.log('收到消息更新，文档数量:', snapshot.docs.length);
+      const newMessages = snapshot.docs.map(doc => {
+        const data = doc.data();
+        console.log('消息数据:', {
+          id: doc.id,
+          senderId: data.senderId,
+          content: data.content,
+          timestamp: data.timestamp,
+          status: data.status
+        });
+        return {
+          id: doc.id,
+          ...data,
+          timestamp: data.timestamp?.toDate() || new Date()
+        };
+      });
+      
+      console.log('设置消息列表，消息数量:', newMessages.length);
+      
+      // 合并临时消息和真实消息，避免重复
+      setMessages(prev => {
+        const tempMessages = prev.filter(msg => msg.isTemporary);
+        const realMessages = newMessages;
+        
+        // 移除重复的临时消息（如果真实消息已到达）
+        const filteredTempMessages = tempMessages.filter(tempMsg => 
+          !realMessages.some(realMsg => 
+            realMsg.senderId === tempMsg.senderId && 
+            realMsg.content === tempMsg.content &&
+            Math.abs(realMsg.timestamp.getTime() - tempMsg.timestamp.getTime()) < 5000
+          )
+        );
+        
+        const combinedMessages = [...filteredTempMessages, ...realMessages];
+        
+        // 按时间排序
+        combinedMessages.sort((a, b) => a.timestamp - b.timestamp);
+        
+        console.log('合并后的消息数量:', combinedMessages.length);
+        return combinedMessages;
+      });
+      
+      setLoading(false);
+      
+      // 自动滚动到底部
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }, (error) => {
+      console.error('监听消息失败:', error);
+      setLoading(false);
+      // 如果是因为会话不存在而失败，显示空消息列表
+      if (error.code === 'failed-precondition') {
+        console.log('会话不存在，显示空消息列表');
+        setMessages([]);
+      }
+    });
+  }, [conversationId, currentUserId]);
 
   useEffect(() => {
     // 设置导航栏标题
@@ -94,31 +169,82 @@ export default function ChatScreen({ route, navigation }) {
       ),
     });
 
-    // 模拟加载消息
-    setTimeout(() => {
-      setMessages(MOCK_MESSAGES[conversationId] || []);
-      setLoading(false);
-    }, 1000);
-  }, [conversationId, otherUser]);
+    // 设置消息监听
+    setupMessageListener();
+
+    // 标记消息为已读（延迟执行，确保会话已创建）
+    if (conversationId && currentUserId) {
+      setTimeout(() => {
+        MessageService.markAsRead(conversationId, currentUserId).catch(console.error);
+      }, 1000);
+    }
+
+    // 清理函数
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
+    };
+  }, [conversationId, otherUser, currentUserId, setupMessageListener]);
 
   const sendMessage = async () => {
-    if (!inputText.trim() || sending) return;
+    if (!inputText.trim() || sending || !currentUserId) return;
 
     try {
       setSending(true);
-      // 模拟发送消息
-      const newMessage = {
-        id: Date.now().toString(),
-        senderId: userId,
-        content: inputText.trim(),
-        timestamp: new Date(),
+      const content = inputText.trim();
+      setInputText(''); // 立即清空输入框
+
+      console.log('开始发送消息:', {
+        conversationId,
+        currentUserId,
+        otherUserId: otherUser.id,
+        content
+      });
+
+      // 乐观更新：立即显示消息
+      const tempMessage = {
+        id: `temp_${Date.now()}`,
+        senderId: currentUserId,
+        receiverId: otherUser.id,
+        content,
         type: MESSAGE_TYPES.TEXT,
+        status: MESSAGE_STATUS.SENT,
+        timestamp: new Date(),
+        conversationId,
+        isTemporary: true
       };
-      
-      setMessages(prevMessages => [...prevMessages, newMessage]);
-      setInputText('');
+
+      setMessages(prev => [...prev, tempMessage]);
+
+      // 发送消息到 Firestore
+      const messageId = await MessageService.sendMessage(
+        conversationId,
+        currentUserId,
+        otherUser.id,
+        content,
+        MESSAGE_TYPES.TEXT
+      );
+
+      console.log('消息发送成功，ID:', messageId);
+
+      // 不立即移除临时消息，让监听器自动处理重复消息
+
+      // 更新会话的最后消息时间
+      const conversationRef = doc(db, 'conversations', conversationId);
+      await updateDoc(conversationRef, {
+        updatedAt: serverTimestamp(),
+      });
+
+      console.log('会话更新时间成功');
+
     } catch (error) {
       console.error('发送消息失败:', error);
+      Alert.alert('发送失败', '消息发送失败，请重试');
+      setInputText(content); // 恢复输入内容
+      
+      // 移除临时消息
+      setMessages(prev => prev.filter(msg => !msg.isTemporary));
     } finally {
       setSending(false);
     }
@@ -171,8 +297,50 @@ export default function ChatScreen({ route, navigation }) {
     );
   };
 
+  // 格式化时间显示
+  const formatTime = (timestamp) => {
+    if (!timestamp) return '';
+    
+    const now = new Date();
+    const messageTime = new Date(timestamp);
+    const diffInHours = (now - messageTime) / (1000 * 60 * 60);
+    
+    if (diffInHours < 24) {
+      return messageTime.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    } else if (diffInHours < 48) {
+      return '昨天 ' + messageTime.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    } else {
+      return messageTime.toLocaleDateString('zh-CN', { 
+        month: '2-digit', 
+        day: '2-digit',
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    }
+  };
+
+  // 获取消息状态图标
+  const getMessageStatusIcon = (status) => {
+    switch (status) {
+      case MESSAGE_STATUS.SENT:
+        return 'checkmark';
+      case MESSAGE_STATUS.DELIVERED:
+        return 'checkmark-done';
+      case MESSAGE_STATUS.READ:
+        return 'checkmark-done';
+      default:
+        return 'time';
+    }
+  };
+
   const renderMessage = ({ item }) => {
-    const isOwnMessage = item.senderId === userId;
+    const isOwnMessage = item.senderId === currentUserId;
 
     return (
       <TouchableOpacity
@@ -218,12 +386,22 @@ export default function ChatScreen({ route, navigation }) {
               {item.content}
             </Text>
           )}
-          <Text style={[
-            styles.messageTime,
-            isOwnMessage ? styles.ownMessageTime : null
-          ]}>
-            {item.timestamp.toLocaleTimeString()}
-          </Text>
+          <View style={styles.messageFooter}>
+            <Text style={[
+              styles.messageTime,
+              isOwnMessage ? styles.ownMessageTime : null
+            ]}>
+              {formatTime(item.timestamp)}
+            </Text>
+            {isOwnMessage && (
+              <Ionicons
+                name={getMessageStatusIcon(item.status)}
+                size={12}
+                color={item.status === MESSAGE_STATUS.READ ? '#4CAF50' : 'rgba(255, 255, 255, 0.7)'}
+                style={styles.statusIcon}
+              />
+            )}
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -345,14 +523,21 @@ const styles = StyleSheet.create({
   ownMessageText: {
     color: '#fff',
   },
+  messageFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+  },
   messageTime: {
     fontSize: 12,
     color: '#999',
-    marginTop: 4,
-    alignSelf: 'flex-end',
   },
   ownMessageTime: {
     color: 'rgba(255, 255, 255, 0.7)',
+  },
+  statusIcon: {
+    marginLeft: 4,
   },
   inputContainer: {
     flexDirection: 'row',
