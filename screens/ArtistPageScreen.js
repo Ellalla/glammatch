@@ -15,6 +15,7 @@ import { auth, db } from '../firebaseConfig';
 import { collection, query, where, orderBy, getDocs, doc, getDoc, limit, startAfter } from 'firebase/firestore';
 import { colors, typography } from '../src/theme';
 import { Button, Card, Avatar } from '../src/components';
+import { generateConversationId } from '../utils/chatUtils';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export default function ArtistPageScreen({ navigation, route }) {
@@ -380,7 +381,7 @@ export default function ArtistPageScreen({ navigation, route }) {
               <Button
                 title="联系化妆师"
                 onPress={() => navigation.navigate('Chat', { 
-                  conversationId: `chat_${auth.currentUser?.uid}_${artistId}`,
+                  conversationId: generateConversationId(auth.currentUser?.uid, artistId),
                   otherUser: {
                     id: artistId,
                     displayName: artist?.displayName || artist?.email || '化妆师',

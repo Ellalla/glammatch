@@ -14,12 +14,15 @@ import { auth, db } from '../firebaseConfig';
 import { collection, query, where, getDocs, orderBy, limit, startAfter } from 'firebase/firestore';
 import { colors, typography } from '../src/theme';
 import { Button, Card, Avatar } from '../src/components';
+import { useNotifications } from '../src/contexts/NotificationContext';
+import { generateConversationId } from '../utils/chatUtils';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export default function MentionsScreen({ navigation }) {
   const [mentions, setMentions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { markMentionAsRead } = useNotifications();
   const [loadMoreLoading, setLoadMoreLoading] = useState(false);
   const [lastDoc, setLastDoc] = useState(null);
   const [hasMore, setHasMore] = useState(true);
@@ -164,14 +167,19 @@ export default function MentionsScreen({ navigation }) {
         
         <TouchableOpacity 
           style={styles.replyButton}
-          onPress={() => navigation.navigate('Chat', {
-            conversationId: `chat_${auth.currentUser?.uid}_${item.userId}`,
-            otherUser: {
-              id: item.userId,
-              displayName: item.userEmail || '用户',
-              avatar: null
-            }
-          })}
+          onPress={() => {
+            // 标记@提醒为已读
+            markMentionAsRead(item.id);
+            // 导航到聊天界面
+            navigation.navigate('Chat', {
+              conversationId: generateConversationId(auth.currentUser?.uid, item.userId),
+              otherUser: {
+                id: item.userId,
+                displayName: item.userEmail || '用户',
+                avatar: null
+              }
+            });
+          }}
         >
           <Ionicons name="chatbubble-outline" size={16} color={colors.primary} />
           <Text style={styles.replyText}>回复</Text>

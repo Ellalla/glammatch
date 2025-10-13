@@ -16,6 +16,7 @@ import { doc, getDoc, collection, query, where, getDocs, limit, startAfter } fro
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { colors, typography } from '../src/theme';
 import { Card, Avatar, Button } from '../src/components';
+import { generateConversationId } from '../utils/chatUtils';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export default function UserProfileScreen({ route, navigation }) {
@@ -153,7 +154,7 @@ export default function UserProfileScreen({ route, navigation }) {
     if (!currentUserId || !userId) return;
     
     navigation.navigate('Chat', {
-      conversationId: `chat_${currentUserId}_${userId}`,
+      conversationId: generateConversationId(currentUserId, userId),
       otherUser: {
         id: userId,
         displayName: user?.displayName || user?.email || '用户',

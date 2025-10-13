@@ -15,6 +15,7 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { Message, Conversation, MESSAGE_TYPES, MESSAGE_STATUS } from '../models/Message';
+import { generateConversationId } from '../utils/chatUtils';
 
 export class MessageService {
   // 创建新会话
@@ -33,6 +34,18 @@ export class MessageService {
       return docRef.id;
     } catch (error) {
       console.error('创建会话失败:', error);
+      throw error;
+    }
+  }
+
+  // 创建或获取两个用户之间的会话
+  static async createOrGetConversation(userId1, userId2) {
+    try {
+      const conversationId = generateConversationId(userId1, userId2);
+      await this.ensureConversationExists(conversationId, [userId1, userId2]);
+      return conversationId;
+    } catch (error) {
+      console.error('创建或获取会话失败:', error);
       throw error;
     }
   }
@@ -60,6 +73,9 @@ export class MessageService {
       
       // 更新会话的最后一条消息和未读计数
       const conversationRef = doc(db, 'conversations', conversationId);
+      const conversationDoc = await getDoc(conversationRef);
+      const currentUnreadCount = conversationDoc.data()?.unreadCount?.[receiverId] || 0;
+      
       await updateDoc(conversationRef, {
         lastMessage: {
           content,
@@ -68,9 +84,9 @@ export class MessageService {
           type,
         },
         updatedAt: serverTimestamp(),
-        [`unreadCount.${receiverId}`]: 1, // 为接收者增加未读计数
+        [`unreadCount.${receiverId}`]: currentUnreadCount + 1, // 递增未读计数
       });
-      console.log('会话信息已更新');
+      console.log('会话信息已更新，未读计数:', currentUnreadCount + 1);
 
       // 延迟更新消息状态为已送达
       setTimeout(async () => {

@@ -29,6 +29,7 @@ import ProTabNavigator from './src/navigation/ProTabNavigator';
 import { auth, db } from './firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import { NotificationProvider } from './src/contexts/NotificationContext';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -275,8 +276,10 @@ export default function App() {
   };
 
   return (
-    <NavigationContainer>
-      {renderMainNavigator()}
-    </NavigationContainer>
+    <NotificationProvider>
+      <NavigationContainer>
+        {renderMainNavigator()}
+      </NavigationContainer>
+    </NotificationProvider>
   );
 }

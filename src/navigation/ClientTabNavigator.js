@@ -3,6 +3,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme';
+import { useNotifications } from '../contexts/NotificationContext';
+import { BadgeIcon } from '../components';
 
 // 导入客户端相关屏幕
 import HomeScreen from '../../screens/HomeScreen';
@@ -23,6 +25,8 @@ const Stack = createNativeStackNavigator();
 
 // 客户端标签页导航器
 function ClientTabs() {
+  const { unreadMessages } = useNotifications();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -48,6 +52,18 @@ function ClientTabs() {
               break;
             default:
               iconName = 'help-outline';
+          }
+
+          // 为消息标签页添加徽章
+          if (route.name === 'Messages' && unreadMessages > 0) {
+            return (
+              <BadgeIcon 
+                name={iconName} 
+                size={size} 
+                color={color} 
+                badgeCount={unreadMessages}
+              />
+            );
           }
 
           return <Icon name={iconName} size={size} color={color} />;

@@ -13,6 +13,7 @@ import {
 import { auth, db } from '../firebaseConfig';
 import { MessageService } from '../services/MessageService';
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { generateConversationId } from '../utils/chatUtils';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DefaultAvatar from '../components/DefaultAvatar';
 
@@ -85,8 +86,8 @@ export default function MessagesScreen({ navigation }) {
       const conversationsRef = collection(db, 'conversations');
       const q = query(
         conversationsRef,
-        where('participants', 'array-contains', currentUserId),
-        orderBy('updatedAt', 'desc')
+        where('participants', 'array-contains', currentUserId)
+        // 暂时移除 orderBy 避免索引问题，在客户端排序
       );
 
       const querySnapshot = await getDocs(q);
@@ -102,6 +103,7 @@ export default function MessagesScreen({ navigation }) {
           
           conversationsData.push({
             id: docSnapshot.id,
+            otherUserId: otherUserId, // 保存另一个用户的ID
             ...userInfo,
             lastMessage: conversationData.lastMessage?.content || '暂无消息',
             timestamp: conversationData.lastMessage?.timestamp?.toDate() || conversationData.updatedAt?.toDate() || new Date(),
@@ -110,6 +112,8 @@ export default function MessagesScreen({ navigation }) {
         }
       }
 
+      // 按更新时间排序（最新的在前）
+      conversationsData.sort((a, b) => b.timestamp - a.timestamp);
       setConversations(conversationsData);
     } catch (error) {
       console.error('加载会话列表失败:', error);
@@ -127,8 +131,8 @@ export default function MessagesScreen({ navigation }) {
     const conversationsRef = collection(db, 'conversations');
     const q = query(
       conversationsRef,
-      where('participants', 'array-contains', currentUserId),
-      orderBy('updatedAt', 'desc')
+      where('participants', 'array-contains', currentUserId)
+      // 暂时移除 orderBy 避免索引问题，在客户端排序
     );
 
     return onSnapshot(q, async (snapshot) => {
@@ -144,6 +148,7 @@ export default function MessagesScreen({ navigation }) {
           
           conversationsData.push({
             id: docSnapshot.id,
+            otherUserId: otherUserId, // 保存另一个用户的ID
             ...userInfo,
             lastMessage: conversationData.lastMessage?.content || '暂无消息',
             timestamp: conversationData.lastMessage?.timestamp?.toDate() || conversationData.updatedAt?.toDate() || new Date(),
@@ -152,6 +157,8 @@ export default function MessagesScreen({ navigation }) {
         }
       }
 
+      // 按更新时间排序（最新的在前）
+      conversationsData.sort((a, b) => b.timestamp - a.timestamp);
       setConversations(conversationsData);
       setLoading(false);
     }, (error) => {
@@ -186,9 +193,9 @@ export default function MessagesScreen({ navigation }) {
     );
 
     navigation.navigate('Chat', {
-      conversationId: item.id,
+      conversationId: generateConversationId(currentUserId, item.otherUserId), // 使用生成的会话ID
       otherUser: {
-        id: item.id,
+        id: item.otherUserId, // 使用另一个用户的ID
         displayName: item.displayName,
         avatar: item.avatar,
       },

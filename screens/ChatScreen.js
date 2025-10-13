@@ -91,27 +91,33 @@ export default function ChatScreen({ route, navigation }) {
     const messagesRef = collection(db, 'messages');
     const q = query(
       messagesRef,
-      where('conversationId', '==', conversationId),
-      orderBy('timestamp', 'asc')
+      where('conversationId', '==', conversationId)
+      // 暂时移除 orderBy 避免索引问题，在客户端排序
     );
 
     unsubscribeRef.current = onSnapshot(q, (snapshot) => {
       console.log('收到消息更新，文档数量:', snapshot.docs.length);
+      console.log('当前会话ID:', conversationId);
+      console.log('当前用户ID:', currentUserId);
+      console.log('查询条件: conversationId ==', conversationId);
+      
       const newMessages = snapshot.docs.map(doc => {
         const data = doc.data();
         console.log('消息数据:', {
           id: doc.id,
           senderId: data.senderId,
+          receiverId: data.receiverId,
           content: data.content,
           timestamp: data.timestamp,
-          status: data.status
+          status: data.status,
+          conversationId: data.conversationId
         });
         return {
           id: doc.id,
           ...data,
           timestamp: data.timestamp?.toDate() || new Date()
         };
-      });
+      }).sort((a, b) => a.timestamp - b.timestamp); // 客户端排序
       
       console.log('设置消息列表，消息数量:', newMessages.length);
       
@@ -146,6 +152,12 @@ export default function ChatScreen({ route, navigation }) {
       }, 100);
     }, (error) => {
       console.error('监听消息失败:', error);
+      console.error('错误详情:', {
+        code: error.code,
+        message: error.message,
+        conversationId: conversationId,
+        currentUserId: currentUserId
+      });
       setLoading(false);
       // 如果是因为会话不存在而失败，显示空消息列表
       if (error.code === 'failed-precondition') {
@@ -201,6 +213,17 @@ export default function ChatScreen({ route, navigation }) {
         otherUserId: otherUser.id,
         content
       });
+
+      // 验证参数
+      if (!conversationId) {
+        throw new Error('会话ID不存在');
+      }
+      if (!currentUserId) {
+        throw new Error('当前用户ID不存在');
+      }
+      if (!otherUser?.id) {
+        throw new Error('对方用户ID不存在');
+      }
 
       // 乐观更新：立即显示消息
       const tempMessage = {
