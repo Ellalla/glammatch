@@ -1,78 +1,79 @@
 /**
- * GlamMatch App - Color Theme
- * 全局颜色主题配置
+ * GlamMatch App - Color Theme (Creamy Luxury Edition)
+ * 高级极简风格：奶白、摩卡、香槟粉、浅金
  */
 
 export const colors = {
-  // 主色调
-  primary: '#6B4C3B',        // 深棕色 - 主要按钮、导航
-  secondary: '#FF5A5F',      // 珊瑚红 - 强调色、点赞等
-  
-  // 中性色
+  // ✨ 主色调
+  primary: '#B18C74',        // 奶咖色 Mocha Latte - 主按钮、标题
+  secondary: '#EAC4B3',      // 香槟粉 Champagne Pink - 强调色
+  highlight: '#F2D5C4',      // 奶杏米色 - hover / active
+
+  // ⚪ 中性色
   white: '#FFFFFF',
   black: '#000000',
   gray: {
-    50: '#F9FAFB',
-    100: '#F3F4F6',
-    200: '#E5E7EB',
-    300: '#D1D5DB',
-    400: '#9CA3AF',
-    500: '#6B7280',
-    600: '#4B5563',
-    700: '#374151',
-    800: '#1F2937',
-    900: '#111827',
+    50: '#FCFBFA',           // 奶白 - 最浅背景
+    100: '#F8F6F4',          // 奶油白 - 主背景
+    200: '#F2EFEC',          // 米白 - 次级背景
+    300: '#E8E3DF',          // 雾灰 - 区块边缘
+    400: '#D9D2CB',          // 浅摩卡灰
+    500: '#BCAAA4',          // 摩卡灰
+    600: '#8C7B74',          // 深摩卡
+    700: '#5A4B43',          // 咖啡棕
+    800: '#3C2E27',          // 深咖
+    900: '#241E1A',          // 极深咖
   },
-  
-  // 背景色
+
+  // 🧊 背景色（以奶白为主）
   background: {
-    primary: '#fff9f7',      // 主背景色
-    secondary: '#FFFFFF',    // 卡片背景
-    tertiary: '#F9FAFB',     // 次要背景
+    primary: '#FCFBFA',      // 净白主背景
+    secondary: '#FFFFFF',    // 卡片纯白
+    tertiary: '#F8F6F4',     // 奶油底色（用于输入区、底部区域）
   },
-  
-  // 文本色
+
+  // ✍️ 文本色（柔和但对比足够）
   text: {
-    primary: '#1F2937',      // 主要文本
-    secondary: '#6B7280',    // 次要文本
-    tertiary: '#9CA3AF',     // 辅助文本
+    primary: '#2E2E2E',      // 主文本 - 深灰
+    secondary: '#6E6E6E',    // 次文本 - 中灰
+    tertiary: '#A0A0A0',     // 辅助文本
     inverse: '#FFFFFF',      // 反色文本
-    link: '#6B4C3B',         // 链接文本
+    link: '#B18C74',         // 链接文本 - 奶咖主色
   },
-  
-  // 状态色
+
+  // 📊 状态色（去掉饱和感，走柔彩路线）
   status: {
-    success: '#10B981',      // 成功
-    warning: '#F59E0B',      // 警告
-    error: '#EF4444',        // 错误
-    info: '#3B82F6',         // 信息
+    success: '#B5C8A6',      // 低饱和橄榄绿
+    warning: '#EED8A3',      // 奶金色
+    error: '#E8A5A0',        // 干玫瑰红
+    info: '#C3CBD9',         // 雾蓝灰
   },
-  
-  // 角色相关色
+
+  // 👥 角色色
   role: {
-    client: '#3B82F6',       // 客户 - 蓝色
-    professional: '#6B4C3B', // 专业化妆师 - 深棕色
+    client: '#D8C7B7',       // 柔沙米
+    professional: '#B18C74', // 奶咖
   },
-  
-  // 边框色
+
+  // 🔲 边框色（轻薄感）
   border: {
-    light: '#E5E7EB',
-    medium: '#D1D5DB',
-    dark: '#9CA3AF',
+    light: '#EFEAE6',
+    medium: '#E0DAD5',
+    dark: '#BCAAA4',
   },
-  
-  // 阴影色
+
+  // ☁️ 阴影（暖灰调）
   shadow: {
-    light: 'rgba(0, 0, 0, 0.1)',
-    medium: 'rgba(0, 0, 0, 0.15)',
-    dark: 'rgba(0, 0, 0, 0.25)',
+    light: 'rgba(0, 0, 0, 0.04)',
+    medium: 'rgba(177, 140, 116, 0.12)', // 奶咖阴影
+    dark: 'rgba(177, 140, 116, 0.2)',
   },
-  
-  // 渐变色
+
+  // 🌈 渐变（柔光感）
   gradient: {
-    primary: ['#6B4C3B', '#8B5A3C'],
-    secondary: ['#FF5A5F', '#FF7A7F'],
-    sunset: ['#FF6B6B', '#FFE66D'],
+    primary: ['#FDFCFB', '#F8F6F4'],     // 纯净奶白渐变
+    secondary: ['#EAC4B3', '#F2D5C4'],   // 香槟粉 → 奶杏
+    accent: ['#B18C74', '#EAC4B3'],      // 奶咖 → 香槟粉
   },
 };
 

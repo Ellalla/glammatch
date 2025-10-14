@@ -276,13 +276,15 @@ export default function ProfileScreen({ navigation, route }) {
               }}
             />
           ) : (
-            <DefaultAvatar size={120} name={profile.displayName || 'U'} />
+            <DefaultAvatar size={80} name={profile.displayName || 'U'} />
           )}
         </TouchableOpacity>
 
         {/* 昵称 & 邮箱 */}
         <Text style={styles.name}>{profile.displayName || '未设置昵称'}</Text>
-        <Text style={styles.email}>{auth.currentUser?.email}</Text>
+        {!profile.displayName && (
+          <Text style={styles.email}>{auth.currentUser?.email}</Text>
+        )}
 
         {/* 简介 */}
         <View style={styles.section}>
@@ -310,34 +312,40 @@ export default function ProfileScreen({ navigation, route }) {
           </Text>
         </View>
 
-        {/* 作品集部分 */}
-        <View style={styles.section}>
-          <PortfolioGrid items={samplePortfolioItems} />
-        </View>
+        {/* 作品集部分 - 仅专业化妆师显示 */}
+        {userRole === 'professional' && (
+          <View style={styles.section}>
+            <PortfolioGrid items={samplePortfolioItems} />
+          </View>
+        )}
 
-        {/* 管理日程按钮 */}
-        <View style={styles.section}>
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => navigation.navigate('StylistSchedule')}
-          >
-            <Ionicons name="calendar-outline" size={24} color="#6B4C3B" />
-            <Text style={styles.menuText}>管理我的日程</Text>
-            <Ionicons name="chevron-forward" size={24} color="#999" />
-          </TouchableOpacity>
-        </View>
+        {/* 管理日程按钮 - 仅专业化妆师显示 */}
+        {userRole === 'professional' && (
+          <View style={styles.section}>
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => navigation.navigate('StylistSchedule')}
+            >
+              <Ionicons name="calendar-outline" size={24} color="#6B4C3B" />
+              <Text style={styles.menuText}>管理我的日程</Text>
+              <Ionicons name="chevron-forward" size={24} color="#999" />
+            </TouchableOpacity>
+          </View>
+        )}
 
-        {/* 套餐管理按钮 */}
-        <View style={styles.section}>
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => navigation.navigate('MyPackage')}
-          >
-            <Ionicons name="gift-outline" size={24} color="#6B4C3B" />
-            <Text style={styles.menuText}>管理我的套餐</Text>
-            <Ionicons name="chevron-forward" size={24} color="#999" />
-          </TouchableOpacity>
-        </View>
+        {/* 套餐管理按钮 - 仅专业化妆师显示 */}
+        {userRole === 'professional' && (
+          <View style={styles.section}>
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => navigation.navigate('MyPackage')}
+            >
+              <Ionicons name="gift-outline" size={24} color="#6B4C3B" />
+              <Text style={styles.menuText}>管理我的套餐</Text>
+              <Ionicons name="chevron-forward" size={24} color="#999" />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* 主题测试按钮 */}
         <View style={styles.section}>
@@ -485,10 +493,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 16,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 24,
   },
   avatarPlaceholder: {
     backgroundColor: '#ddd',
@@ -500,12 +508,15 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   name: {
-    ...typography.styles.h3,
+    ...typography.styles.h4,
     color: colors.primary,
+    marginTop: 12,
+    marginBottom: 16,
   },
   email: {
     ...typography.styles.body,
     color: colors.text.secondary,
+    marginTop: 4,
     marginBottom: 24,
   },
   section: {

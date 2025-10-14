@@ -276,11 +276,14 @@ const styles = StyleSheet.create({
     ...typography.styles.h3,
     color: colors.text.primary,
     fontWeight: '700',
+    lineHeight: 32,
+    marginBottom: 8,
   },
   headerSubtitle: {
     ...typography.styles.body,
     color: colors.text.secondary,
-    marginTop: 4,
+    marginTop: 0,
+    lineHeight: 20,
   },
   listContainer: {
     padding: 16,
@@ -297,22 +300,26 @@ const styles = StyleSheet.create({
   },
   mentionHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 12,
   },
   mentionUserInfo: {
     flex: 1,
     marginLeft: 12,
+    marginRight: 8,
   },
   mentionUserName: {
     ...typography.styles.label,
     color: colors.text.primary,
     fontWeight: '600',
+    marginBottom: 6,
+    lineHeight: 18,
   },
   mentionDate: {
     ...typography.styles.caption,
     color: colors.text.secondary,
-    marginTop: 2,
+    marginTop: 0,
+    lineHeight: 16,
   },
   mentionBadge: {
     flexDirection: 'row',
@@ -321,12 +328,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+    minWidth: 60,
   },
   mentionText: {
     ...typography.styles.caption,
     color: colors.primary,
     marginLeft: 4,
     fontWeight: '600',
+    lineHeight: 16,
   },
   mentionDescription: {
     ...typography.styles.body,

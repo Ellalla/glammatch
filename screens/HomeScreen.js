@@ -239,15 +239,15 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* 查看评论 */}
-        <TouchableOpacity>
-          <Text style={styles.viewComments}>
-            查看全部 {item.comments || 0} 条评论
-          </Text>
-        </TouchableOpacity>
-
-        {/* 时间戳 */}
-        <Text style={styles.timestamp}>{formatTime(item.createdAt)}</Text>
+        {/* 查看评论和时间戳 */}
+        <View style={styles.bottomInfoContainer}>
+          <TouchableOpacity>
+            <Text style={styles.viewComments}>
+              查看全部 {item.comments || 0} 条评论
+            </Text>
+          </TouchableOpacity>
+          <Text style={styles.timestamp}>{formatTime(item.createdAt)}</Text>
+        </View>
       </View>
     );
   };
@@ -256,7 +256,14 @@ export default function HomeScreen() {
     <View style={styles.container}>
       {/* 头部 */}
       <View style={styles.header}>
-        <Text style={styles.appTitle}>GlamMatch</Text>
+        <View style={styles.titleContainer}>
+          <Text style={styles.appTitle}>GlamMatch</Text>
+          <Image 
+            source={require('../assets/logo.png')} 
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </View>
         <View style={styles.headerRight}>
           <TouchableOpacity 
             style={styles.headerButton}
@@ -368,10 +375,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.1)',
   },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   appTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#FF5A5F',
+    marginRight: 8,
+  },
+  logoImage: {
+    width: 24,
+    height: 24,
+    backgroundColor: 'transparent',
   },
   headerRight: {
     flexDirection: 'row',
@@ -474,24 +491,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
+  bottomInfoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    marginTop: 4,
+  },
   viewComments: {
     fontSize: 14,
     color: '#666',
-    marginLeft: 12,
-    marginBottom: 4,
   },
   timestamp: {
     fontSize: 12,
     color: '#999',
-    marginLeft: 12,
-    marginTop: 2,
   },
   taggedArtist: {
     fontSize: 14,
     color: '#6B4C3B',
     fontWeight: '600',
     marginTop: 4,
-    marginLeft: 12,
     textDecorationLine: 'underline',
   },
   modalOverlay: {
