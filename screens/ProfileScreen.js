@@ -21,45 +21,6 @@ import PortfolioGrid from '../components/PortfolioGrid';
 import { colors, typography } from '../src/theme';
 import { Button, Card } from '../src/components';
 
-// 添加示例作品数据
-const samplePortfolioItems = [
-  {
-    id: '1',
-    title: '新娘妆容',
-    description: '为新娘设计的精致妆容，突出新娘的自然美。',
-    image: require('../assets/portfolio/makeup1.jpg'),
-  },
-  {
-    id: '2',
-    title: '日常妆容',
-    description: '清新自然的日常妆容，适合各种场合。',
-    image: require('../assets/portfolio/makeup2.jpg'),
-  },
-  {
-    id: '3',
-    title: '派对妆容',
-    description: '闪耀夺目的派对妆容，让你成为焦点。',
-    image: require('../assets/portfolio/makeup3.jpg'),
-  },
-  {
-    id: '4',
-    title: '创意妆容',
-    description: '充满创意的艺术妆容，展现独特魅力。',
-    image: require('../assets/portfolio/makeup4.jpg'),
-  },
-  {
-    id: '5',
-    title: '晚宴妆容',
-    description: '优雅大方的晚宴妆容，展现成熟魅力。',
-    image: require('../assets/portfolio/makeup5.jpg'),
-  },
-  {
-    id: '6',
-    title: '舞台妆容',
-    description: '夸张夺目的舞台妆容，适合表演场合。',
-    image: require('../assets/portfolio/makeup6.jpg'),
-  },
-];
 
 export default function ProfileScreen({ navigation, route }) {
   const [profile, setProfile] = useState(null);
@@ -315,7 +276,61 @@ export default function ProfileScreen({ navigation, route }) {
         {/* 作品集部分 - 仅专业化妆师显示 */}
         {userRole === 'professional' && (
           <View style={styles.section}>
-            <PortfolioGrid items={samplePortfolioItems} />
+            <View style={styles.portfolioHeader}>
+              <Text style={styles.sectionTitle}>我的作品集</Text>
+              <TouchableOpacity 
+                style={styles.addPortfolioButton}
+                onPress={() => navigation.navigate('PortfolioManager')}
+              >
+                <Ionicons name="add" size={20} color={colors.primary} />
+                <Text style={styles.addPortfolioText}>管理作品集</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {profile.albums && profile.albums.length > 0 ? (
+              <View style={styles.albumsContainer}>
+                {profile.albums.map((album, index) => (
+                  <TouchableOpacity 
+                    key={album.id || index}
+                    style={styles.albumItem}
+                    onPress={() => navigation.navigate('AlbumView', { album })}
+                  >
+                    <View style={styles.albumCover}>
+                      {album.coverImage ? (
+                        <Image source={{ uri: album.coverImage }} style={styles.albumCoverImage} />
+                      ) : (
+                        <View style={styles.albumPlaceholder}>
+                          <Ionicons name="images-outline" size={32} color={colors.gray[400]} />
+                        </View>
+                      )}
+                      <View style={styles.albumOverlay}>
+                        <Text style={styles.albumPhotoCount}>
+                          {album.photos ? album.photos.length : 0}/10
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.albumTitle}>{album.name}</Text>
+                    <Text style={styles.albumDescription}>
+                      {album.description || '暂无描述'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptyPortfolio}>
+                <Ionicons name="images-outline" size={48} color={colors.gray[400]} />
+                <Text style={styles.emptyPortfolioText}>暂无作品集</Text>
+                <Text style={styles.emptyPortfolioSubtext}>
+                  创建相册并上传您的作品照片
+                </Text>
+                <TouchableOpacity 
+                  style={styles.createAlbumButton}
+                  onPress={() => navigation.navigate('PortfolioManager')}
+                >
+                  <Text style={styles.createAlbumButtonText}>创建第一个相册</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         )}
 
@@ -595,5 +610,107 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '500',
+  },
+  emptyPortfolio: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 16,
+  },
+  emptyPortfolioText: {
+    fontSize: 16,
+    color: colors.text.secondary,
+    marginBottom: 8,
+  },
+  emptyPortfolioSubtext: {
+    fontSize: 14,
+    color: colors.text.tertiary,
+    textAlign: 'center',
+  },
+  portfolioHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  addPortfolioButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  addPortfolioText: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  albumsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  albumItem: {
+    width: '48%',
+    marginBottom: 16,
+  },
+  albumCover: {
+    width: '100%',
+    height: 120,
+    borderRadius: 8,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: colors.gray[100],
+  },
+  albumCoverImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  albumPlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.gray[100],
+  },
+  albumOverlay: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  albumPhotoCount: {
+    fontSize: 12,
+    color: colors.white,
+    fontWeight: '600',
+  },
+  albumTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.primary,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  albumDescription: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    lineHeight: 18,
+  },
+  createAlbumButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 20,
+    marginTop: 16,
+  },
+  createAlbumButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

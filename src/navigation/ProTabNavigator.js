@@ -19,6 +19,8 @@ import EditProfileScreen from '../../screens/EditProfileScreen';
 import ChatScreen from '../../screens/ChatScreen';
 import UserProfileScreen from '../../screens/UserProfileScreen';
 import ThemeTestScreen from '../../screens/ThemeTestScreen';
+import PortfolioManagerScreen from '../../screens/PortfolioManagerScreen';
+import AlbumEditScreen from '../../screens/AlbumEditScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -244,6 +246,20 @@ export default function ProTabNavigator() {
           headerTitleStyle: {
             fontWeight: '600',
           },
+        }}
+      />
+      <Stack.Screen 
+        name="PortfolioManager" 
+        component={PortfolioManagerScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen 
+        name="AlbumEditScreen" 
+        component={AlbumEditScreen}
+        options={{
+          headerShown: false,
         }}
       />
     </Stack.Navigator>

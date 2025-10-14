@@ -245,9 +245,6 @@ export default function MentionsScreen({ navigation }) {
         <View style={styles.emptyContainer}>
           <Ionicons name="notifications-outline" size={64} color={colors.gray[400]} />
           <Text style={styles.emptyTitle}>暂无被@提醒</Text>
-          <Text style={styles.emptySubtitle}>
-            当客户在分享体验时@您，提醒会显示在这里
-          </Text>
           <Button
             title="刷新"
             onPress={onRefresh}
@@ -430,13 +427,8 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
   },
-  emptySubtitle: {
-    ...typography.styles.body,
-    color: colors.text.tertiary,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
   refreshButton: {
     paddingHorizontal: 32,
+    marginTop: 20,
   },
 });
